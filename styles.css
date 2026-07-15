@@ -450,6 +450,10 @@ h1 strong {
   line-height: 1.55;
 }
 
+.sp-line {
+  display: inline;
+}
+
 .features {
   display: grid;
   gap: 8px;
@@ -1355,6 +1359,45 @@ td {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+@media (max-width: 719px) {
+  .sp-wrap .sp-line {
+    display: block;
+    white-space: nowrap;
+  }
+
+  .feature-detail summary {
+    grid-template-columns: 46px minmax(0, 1fr) 38px;
+    grid-template-rows: auto auto;
+    row-gap: 8px;
+  }
+
+  .feature-detail summary .feature__number {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .feature-detail summary > span:not(.feature__number) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .feature-detail summary i {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .feature-copy h3 {
+    padding-right: 0;
+  }
+
+  .feature-copy h3.feature-heading--long {
+    font-size: 0.98rem;
+    line-height: 1.55;
   }
 }
 
