@@ -18,10 +18,12 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
+  overflow-x: clip;
   color: var(--text);
   background:
     radial-gradient(circle at 76% 8%, rgba(255, 82, 18, 0.22), transparent 28rem),
@@ -103,7 +105,7 @@ a {
   position: relative;
   z-index: 3;
   grid-column: 1 / -1;
-  padding-right: 32%;
+  padding-right: 18%;
 }
 
 .brand {
@@ -152,7 +154,7 @@ h1 strong {
   display: grid;
   gap: 10px;
   margin-top: 16px;
-  padding-right: 5%;
+  padding-right: 0;
 }
 
 .button {
@@ -160,11 +162,15 @@ h1 strong {
   align-items: center;
   justify-content: center;
   min-height: 46px;
+  padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid var(--line);
   color: var(--text);
   text-decoration: none;
   font-weight: 800;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .button::after {
@@ -194,12 +200,25 @@ h1 strong {
   content: "→";
 }
 
+.crowdfunding-note {
+  display: block;
+  margin-top: -3px;
+  color: var(--dim);
+  font-size: 0.66rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .button:disabled,
 .button--disabled {
   cursor: not-allowed;
   color: rgba(255, 255, 255, 0.56);
   background: linear-gradient(180deg, #242424, #101010);
   box-shadow: none;
+}
+
+.button--disabled::after {
+  display: none;
 }
 
 .product-stage {
@@ -311,7 +330,6 @@ h1 strong {
 
 .pain,
 .nutrition,
-.launch-interest,
 .trial-plan,
 .plans,
 .faq {
@@ -323,11 +341,11 @@ h1 strong {
 
 .pain {
   margin-top: 0;
+  scroll-margin-top: 12px;
 }
 
 .pain h2,
 .nutrition h2,
-.launch-interest h2,
 .trial-plan h2,
 .plans h2,
 .faq h2 {
@@ -407,6 +425,29 @@ h1 strong {
   color: var(--text);
   background: linear-gradient(transparent 52%, rgba(255, 92, 20, 0.68) 52% 92%, transparent 92%);
   font-weight: 900;
+}
+
+.feature-group {
+  padding-top: 12px;
+}
+
+.feature-group--product {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 92, 20, 0.32);
+}
+
+.feature-group__heading {
+  margin-bottom: 14px;
+  padding: 8px 8px 0;
+  text-align: center;
+}
+
+.feature-group__heading h2 {
+  margin-top: 5px;
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-size: clamp(1.2rem, 5.4vw, 1.72rem);
+  line-height: 1.55;
 }
 
 .features {
@@ -580,9 +621,10 @@ h1 strong {
 .feature-visual img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 8.8;
-  object-fit: cover;
-  opacity: 0.82;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  opacity: 1;
   filter: saturate(0.95) contrast(1.08);
 }
 
@@ -647,6 +689,51 @@ h1 strong {
 .feature-copy h3 {
   font-size: 1.18rem;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.research-title {
+  margin: 8px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 92, 20, 0.26);
+  color: var(--text);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.research-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.research-card {
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 92, 20, 0.42);
+  border-radius: 6px;
+  background: rgba(6, 6, 6, 0.72);
+}
+
+.research-card h5 {
+  margin: 0;
+  color: var(--accent-2);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.research-card p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.research-notes {
+  display: grid;
+  gap: 3px;
+  margin-top: 2px;
 }
 
 .feature-detail__body p,
@@ -811,86 +898,6 @@ td {
   display: inline-block;
   font-size: 0.68rem;
   white-space: nowrap;
-}
-
-.launch-interest {
-  scroll-margin-top: 18px;
-  text-align: center;
-  background:
-    linear-gradient(180deg, rgba(255, 92, 20, 0.1), transparent 44%),
-    rgba(4, 4, 4, 0.86);
-}
-
-.launch-interest p {
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 0.86rem;
-  line-height: 1.75;
-  font-weight: 700;
-}
-
-.launch-interest small {
-  display: block;
-  margin-top: 10px;
-  color: var(--dim);
-  font-size: 0.7rem;
-  line-height: 1.6;
-}
-
-.launch-interest .button {
-  margin-top: 14px;
-}
-
-.launch-interest__after {
-  display: none;
-}
-
-.launch-interest.is-responded .launch-interest__initial {
-  display: none;
-}
-
-.launch-interest.is-responded .launch-interest__after {
-  display: block;
-}
-
-.launch-form {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.launch-form label {
-  display: grid;
-  gap: 6px;
-  text-align: left;
-}
-
-.launch-form span {
-  color: var(--accent-2);
-  font-size: 0.74rem;
-  font-weight: 900;
-}
-
-.launch-form input {
-  width: 100%;
-  min-height: 46px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 92, 20, 0.42);
-  border-radius: 6px;
-  color: var(--text);
-  background: rgba(0, 0, 0, 0.64);
-  outline: none;
-}
-
-.launch-form input:focus {
-  border-color: rgba(255, 122, 45, 0.96);
-  box-shadow: 0 0 14px rgba(255, 92, 20, 0.18);
-}
-
-.launch-status {
-  min-height: 1.2em;
-  color: var(--accent-2) !important;
-  font-size: 0.74rem !important;
 }
 
 .trial-plan {
@@ -1088,10 +1095,12 @@ td {
 }
 
 .plan button:disabled {
-  cursor: not-allowed;
+  cursor: default;
+  pointer-events: none;
   color: rgba(255, 255, 255, 0.62);
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
 }
 
 .plan.is-selected button {
@@ -1107,6 +1116,21 @@ td {
 .button--wide {
   width: 100%;
   margin-top: 12px;
+}
+
+.crowdfunding-cta {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 92, 20, 0.28);
+  text-align: center;
+}
+
+.crowdfunding-cta small {
+  display: block;
+  margin-top: 7px;
+  color: var(--dim);
+  font-size: 0.68rem;
+  line-height: 1.5;
 }
 
 .closing {
@@ -1240,10 +1264,21 @@ td {
   color: #fff;
   background: linear-gradient(180deg, #ff641c, #f23405);
   box-shadow: var(--shadow);
+  font-size: 0.82rem;
   font-weight: 900;
   line-height: 48px;
   text-align: center;
   text-decoration: none;
+}
+
+@media (min-width: 620px) {
+  .research-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .research-card {
+    min-height: 138px;
+  }
 }
 
 @keyframes product-reveal {
