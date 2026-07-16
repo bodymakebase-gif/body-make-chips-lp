@@ -885,20 +885,20 @@ td {
   padding-left: 20px;
 }
 
-.nutrition__inulin th,
-.nutrition__inulin td {
+.nutrition__analysis th,
+.nutrition__analysis td {
   color: #ff7440;
   border-color: rgba(255, 92, 20, 0.46);
   background: rgba(255, 92, 20, 0.08);
   font-weight: 900;
 }
 
-.nutrition__inulin th {
+.nutrition__analysis th {
   font-size: 0.72rem;
   line-height: 1.45;
 }
 
-.nutrition__inulin td span {
+.nutrition__analysis td span {
   display: inline-block;
   font-size: 0.68rem;
   white-space: nowrap;
