@@ -885,22 +885,27 @@ td {
   padding-left: 20px;
 }
 
-.nutrition__analysis th,
-.nutrition__analysis td {
-  color: #ff7440;
-  border-color: rgba(255, 92, 20, 0.46);
-  background: rgba(255, 92, 20, 0.08);
-  font-weight: 900;
-}
-
-.nutrition__analysis th {
-  font-size: 0.72rem;
+.nutrition__sub--detail {
+  color: var(--dim);
+  font-size: 0.7rem;
   line-height: 1.45;
 }
 
-.nutrition__analysis td span {
-  display: inline-block;
-  font-size: 0.68rem;
+.nutrition__polyphenol {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--dim);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.nutrition__polyphenol span:last-child {
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -1366,6 +1371,11 @@ td {
   .sp-wrap .sp-line {
     display: block;
     white-space: nowrap;
+  }
+
+  .nutrition__polyphenol {
+    flex-direction: column;
+    gap: 2px;
   }
 
   .feature-detail summary {
