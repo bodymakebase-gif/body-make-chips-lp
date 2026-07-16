@@ -6,7 +6,7 @@ const stripeLinks = {
   sub_30: "",
 };
 
-const contactFormEndpoint = "【Apps ScriptのウェブアプリURL】";
+const contactFormEndpoint = "https://script.google.com/macros/s/AKfycbzDu1ED8vVhgp9NNOkncjxCqCKv2IT2_gz-ue2XgX9XBywKLyAuv_i6cYdbAk1KOxqitg/exec";
 
 const purchasesEnabled = false;
 
@@ -275,7 +275,7 @@ if (contactForm) {
       clearContactFieldErrors();
       updateContactMessageCount();
       setContactStatus(
-        "お問い合わせを受け付けました。\n入力いただいたメールアドレス宛てに受付メールを送信しました。",
+        "お問い合わせを受け付けました。\n内容を確認のうえ、返信まで今しばらくお待ちください。",
         "success",
       );
     } catch (error) {
