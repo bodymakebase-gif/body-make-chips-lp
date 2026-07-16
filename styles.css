@@ -891,6 +891,22 @@ td {
   line-height: 1.45;
 }
 
+.nutrition__inulin th,
+.nutrition__inulin td {
+  color: #fff4ed;
+  border-color: rgba(255, 120, 60, 0.82);
+  background: rgba(255, 92, 20, 0.26);
+  font-weight: 900;
+}
+
+.nutrition__inulin th {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.nutrition__inulin td {
+  color: #ffb08c;
+}
+
 .nutrition__polyphenol {
   display: flex;
   justify-content: space-between;
@@ -1438,7 +1454,7 @@ td {
     background:
       linear-gradient(180deg, rgba(0, 0, 0, 0.52) 0%, rgba(0, 0, 0, 0.05) 18%, rgba(0, 0, 0, 0.04) 74%, rgba(0, 0, 0, 0.82) 100%),
       linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.96) 24%, rgba(0, 0, 0, 0.74) 40%, rgba(0, 0, 0, 0.25) 58%, rgba(0, 0, 0, 0.04) 76%, rgba(0, 0, 0, 0) 100%),
-      url("./assets/image-hero-product-main.png") 100% 50% / 96% auto no-repeat;
+      url("./assets/image-hero-product-main.png") 100% 50% / 86% auto no-repeat;
   }
 
   .hero__copy {
