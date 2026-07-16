@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>お問い合わせ | BODY-MAKE BASE</title>
+    <meta
+      name="description"
+      content="BODY-MAKE BASEおよびBODY-MAKE CHIPSに関するお問い合わせフォームです。"
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css?v=20260716-8" />
+  </head>
+  <body class="subpage">
+    <main class="page-shell">
+      <a class="page-back" href="./index.html">← LPトップへ戻る</a>
+
+      <header class="page-header">
+        <p class="page-kicker">CONTACT</p>
+        <h1>お問い合わせ</h1>
+        <p>
+          商品、クラウドファンディング、今後の販売に関するお問い合わせはこちらからお送りください。<br />
+          特定商取引法に基づく販売事業者情報の開示をご希望の場合は、お問い合わせ種別から「特定商取引法に基づく開示請求」を選択してください。
+        </p>
+      </header>
+
+      <section class="contact-card" aria-labelledby="contact-form-title">
+        <h2 id="contact-form-title">お問い合わせフォーム</h2>
+        <p class="form-required-note"><span aria-hidden="true">＊</span>は必須項目です。</p>
+
+        <form id="contact-form" class="contact-form" method="post" action="./contact.html" novalidate>
+          <div class="form-field" data-field="contactType">
+            <label for="contact-type">お問い合わせ種別 <span class="required-label">必須</span></label>
+            <select
+              id="contact-type"
+              name="contactType"
+              required
+              aria-describedby="contact-type-error"
+            >
+              <option value="">選択してください</option>
+              <option value="商品について">商品について</option>
+              <option value="クラウドファンディングについて">クラウドファンディングについて</option>
+              <option value="注文・配送について">注文・配送について</option>
+              <option value="定期便について">定期便について</option>
+              <option value="特定商取引法に基づく開示請求">特定商取引法に基づく開示請求</option>
+              <option value="その他">その他</option>
+            </select>
+            <p id="contact-type-error" class="form-error"></p>
+          </div>
+
+          <div class="form-field" data-field="name">
+            <label for="contact-name">お名前 <span class="required-label">必須</span></label>
+            <input
+              id="contact-name"
+              type="text"
+              name="name"
+              maxlength="100"
+              autocomplete="name"
+              required
+              aria-describedby="contact-name-error"
+            />
+            <p id="contact-name-error" class="form-error"></p>
+          </div>
+
+          <div class="form-field" data-field="email">
+            <label for="contact-email">メールアドレス <span class="required-label">必須</span></label>
+            <input
+              id="contact-email"
+              type="email"
+              name="email"
+              maxlength="254"
+              autocomplete="email"
+              inputmode="email"
+              required
+              aria-describedby="contact-email-error"
+            />
+            <p id="contact-email-error" class="form-error"></p>
+          </div>
+
+          <div class="form-field" data-field="orderNumber">
+            <label for="contact-order-number">注文番号・支援番号 <span class="optional-label">任意</span></label>
+            <input
+              id="contact-order-number"
+              type="text"
+              name="orderNumber"
+              maxlength="100"
+              autocomplete="off"
+              aria-describedby="contact-order-number-error"
+            />
+            <p id="contact-order-number-error" class="form-error"></p>
+          </div>
+
+          <div class="form-field" data-field="message">
+            <label for="contact-message">お問い合わせ内容 <span class="required-label">必須</span></label>
+            <textarea
+              id="contact-message"
+              name="message"
+              rows="9"
+              maxlength="2000"
+              required
+              aria-describedby="contact-message-error contact-message-count"
+            ></textarea>
+            <div class="form-field-meta">
+              <p id="contact-message-error" class="form-error"></p>
+              <p id="contact-message-count" class="character-count" aria-live="polite">0 / 2000文字</p>
+            </div>
+          </div>
+
+          <div class="honeypot-field" aria-hidden="true">
+            <label for="contact-website">ウェブサイト</label>
+            <input
+              id="contact-website"
+              type="text"
+              name="website"
+              tabindex="-1"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-field form-field--consent" data-field="consent">
+            <div class="consent-label">
+              <input
+                id="contact-consent"
+                type="checkbox"
+                name="consent"
+                required
+                aria-describedby="contact-consent-error"
+              />
+              <label for="contact-consent">
+                お問い合わせへの回答および必要な連絡のために、入力した情報が利用されることに同意します。
+              </label>
+            </div>
+            <p class="consent-policy">
+              <a href="./legal.html">個人情報の取り扱い・特定商取引法に基づく表記</a>
+            </p>
+            <p id="contact-consent-error" class="form-error"></p>
+          </div>
+
+          <button id="contact-submit" class="button button--primary contact-submit" type="submit" disabled>
+            <span data-submit-label>送信する</span>
+          </button>
+
+          <p id="contact-status" class="form-status" aria-live="polite" aria-atomic="true"></p>
+          <noscript>
+            <p class="form-status form-status--error">
+              送信にはJavaScriptが必要です。JavaScriptを有効にしてから、もう一度お試しください。
+            </p>
+          </noscript>
+        </form>
+      </section>
+    </main>
+
+    <footer class="site-footer site-footer--subpage">
+      <p>運営：BODY-MAKE BASE</p>
+      <nav aria-label="フッターナビゲーション">
+        <a href="./index.html">LPトップ</a>
+        <a href="./legal.html">特定商取引法に基づく表記</a>
+      </nav>
+    </footer>
+
+    <script src="./script.js?v=20260716-3"></script>
+  </body>
+</html>
