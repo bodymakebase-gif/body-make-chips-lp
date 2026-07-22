@@ -88,7 +88,7 @@ a {
   content: "";
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.97) 0%, rgba(0, 0, 0, 0.9) 43%, rgba(0, 0, 0, 0.38) 65%, rgba(0, 0, 0, 0.08) 100%),
-    url("./assets/image-hero-product-main.png") 54% 32% / 136% auto no-repeat;
+    url("./assets/image-hero-product-main.webp") 54% 32% / 136% auto no-repeat;
   animation: hero-image-reveal 2.4s cubic-bezier(0.2, 0.75, 0.18, 1) both;
 }
 
@@ -1169,7 +1169,7 @@ td {
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.38)),
-    url("./assets/image-story-mountain-silhouette.png") center / cover no-repeat,
+    url("./assets/image-story-mountain-silhouette.webp") center / cover no-repeat,
     linear-gradient(180deg, #1f1f1f, #030303);
 }
 
@@ -1794,7 +1794,7 @@ td {
     background:
       linear-gradient(180deg, rgba(0, 0, 0, 0.52) 0%, rgba(0, 0, 0, 0.05) 18%, rgba(0, 0, 0, 0.04) 74%, rgba(0, 0, 0, 0.82) 100%),
       linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.96) 24%, rgba(0, 0, 0, 0.74) 40%, rgba(0, 0, 0, 0.25) 58%, rgba(0, 0, 0, 0.04) 76%, rgba(0, 0, 0, 0) 100%),
-      url("./assets/image-hero-product-main.png") 100% 50% / 86% auto no-repeat;
+      url("./assets/image-hero-product-main.webp") 100% 50% / 86% auto no-repeat;
   }
 
   .hero__copy {

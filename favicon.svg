@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">BODY-MAKE CHIPS</title>
+  <rect width="64" height="64" rx="14" fill="#050505" />
+  <circle cx="32" cy="32" r="24" fill="none" stroke="#ff5b17" stroke-width="3" />
+  <path d="M19 19h14c7 0 11 3.5 11 9 0 3.2-1.5 5.7-4.4 7.1C43.2 36.5 45 39.2 45 43c0 6-4.4 10-12 10H19V19Zm9 7v6h5c2 0 3-1 3-3s-1-3-3-3h-5Zm0 13v7h5.5c2.4 0 3.5-1.2 3.5-3.5S35.9 39 33.5 39H28Z" fill="#ff5b17" />
+</svg>
