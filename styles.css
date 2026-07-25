@@ -677,8 +677,9 @@ h1 strong {
 .feature-table-image img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 8.4;
-  object-fit: cover;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
   opacity: 0.94;
 }
 
@@ -734,10 +735,22 @@ h1 strong {
   line-height: 1.7;
 }
 
-.research-notes {
+.evidence-note.research-notes {
   display: grid;
   gap: 3px;
   margin-top: 2px;
+}
+
+.research-notes a {
+  color: #ff9b68;
+  overflow-wrap: anywhere;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.research-notes a:hover,
+.research-notes a:focus-visible {
+  color: #ffd0b8;
 }
 
 .feature-detail__body p,
