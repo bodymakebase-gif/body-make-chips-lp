@@ -150,49 +150,6 @@ h1 strong {
   font-weight: 700;
 }
 
-.hero__nutrition-proof {
-  width: fit-content;
-  display: grid;
-  gap: 1px;
-  max-width: 15rem;
-  margin-top: 12px;
-  padding: 8px 10px;
-  border: 1px solid rgba(207, 239, 85, 0.74);
-  border-left: 3px solid #cfef55;
-  border-radius: 4px;
-  color: #f4f8dd;
-  background: rgba(10, 14, 4, 0.82);
-  box-shadow: inset 0 0 16px rgba(207, 239, 85, 0.08);
-  font-size: 0.72rem;
-  font-weight: 800;
-  line-height: 1.55;
-}
-
-.hero__nutrition-proof strong {
-  color: #ff6a1a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 1.3em;
-  font-weight: 900;
-  text-shadow: 0 0 12px rgba(255, 106, 26, 0.48);
-  white-space: nowrap;
-}
-
-.hero__nutrition-proof sup {
-  color: #ff8a45;
-  font-size: 0.72em;
-}
-
-.hero__nutrition-proof-note {
-  display: block;
-  width: fit-content;
-  margin-top: 4px;
-  margin-left: 10px;
-  color: #a99d95;
-  font-size: 0.58rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
 .hero__actions {
   display: grid;
   gap: 10px;
@@ -896,10 +853,18 @@ h1 strong {
   font-size: 0.82rem;
 }
 
+.nutrition-highlight {
+  margin-top: 10px;
+}
+
+.nutrition-highlight + .nutrition {
+  margin-top: 0;
+}
+
 .nutrition__spotlight {
   position: relative;
   overflow: hidden;
-  margin: 0 auto 5px;
+  margin: 0 auto;
   padding: 14px 10px 16px;
   border: 1px solid rgba(255, 106, 26, 0.58);
   border-radius: 6px;
@@ -985,9 +950,9 @@ h1 strong {
   letter-spacing: 0;
 }
 
-.nutrition .nutrition__spotlight-note {
+.nutrition__spotlight-note {
   display: block;
-  margin: 5px 4px 17px;
+  margin: 5px 4px 4px;
   color: var(--dim);
   text-align: right;
   font-size: 0.6rem;
@@ -1970,14 +1935,7 @@ td {
     font-size: 0.96rem;
   }
 
-  .hero__nutrition-proof {
-    max-width: 18rem;
-    padding: 10px 12px;
-    font-size: 0.86rem;
-  }
-
   .nutrition__spotlight {
-    max-width: 720px;
     padding: 20px 26px 22px;
   }
 
