@@ -88,7 +88,7 @@ a {
   content: "";
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.97) 0%, rgba(0, 0, 0, 0.9) 43%, rgba(0, 0, 0, 0.38) 65%, rgba(0, 0, 0, 0.08) 100%),
-    url("./assets/image-hero-product-main-green.webp") 54% 32% / 136% auto no-repeat;
+    url("./assets/image-hero-product-main-green-v2.webp") 54% 32% / 136% auto no-repeat;
   animation: hero-image-reveal 2.4s cubic-bezier(0.2, 0.75, 0.18, 1) both;
 }
 
@@ -894,6 +894,105 @@ h1 strong {
   text-align: center;
   line-height: 1.65;
   font-size: 0.82rem;
+}
+
+.nutrition__spotlight {
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto 5px;
+  padding: 14px 10px 16px;
+  border: 1px solid rgba(255, 106, 26, 0.58);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 106, 26, 0.15), transparent 54%),
+    rgba(8, 8, 8, 0.94);
+  box-shadow: inset 0 0 24px rgba(255, 106, 26, 0.05);
+}
+
+.nutrition__spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-top: 2px solid rgba(255, 138, 69, 0.88);
+  pointer-events: none;
+}
+
+.nutrition__spotlight-eyebrow {
+  display: block;
+  color: var(--accent);
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.nutrition__spotlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
+
+.nutrition__spotlight-metric {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 0 6px;
+}
+
+.nutrition__spotlight-metric + .nutrition__spotlight-metric {
+  border-left: 1px solid rgba(184, 207, 69, 0.38);
+}
+
+.nutrition__spotlight-metric > span {
+  color: #f3f1ed;
+  font-size: clamp(0.78rem, 3.8vw, 1rem);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.nutrition__spotlight-metric strong {
+  color: #ff8a45;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(2.35rem, 12vw, 4.5rem);
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  text-shadow: 0 0 20px rgba(255, 106, 26, 0.42);
+}
+
+.nutrition__spotlight-metric strong small,
+.nutrition__spotlight-metric strong sup {
+  display: inline;
+  margin: 0;
+  color: currentColor;
+  text-align: inherit;
+}
+
+.nutrition__spotlight-metric strong small {
+  margin-left: 0.08em;
+  font-size: 0.42em;
+  letter-spacing: 0;
+}
+
+.nutrition__spotlight-metric strong sup {
+  position: relative;
+  top: -0.56em;
+  margin-left: 0.1em;
+  font-size: 0.24em;
+  letter-spacing: 0;
+}
+
+.nutrition .nutrition__spotlight-note {
+  display: block;
+  margin: 5px 4px 17px;
+  color: var(--dim);
+  text-align: right;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 table {
@@ -1849,7 +1948,7 @@ td {
     background:
       linear-gradient(180deg, rgba(0, 0, 0, 0.52) 0%, rgba(0, 0, 0, 0.05) 18%, rgba(0, 0, 0, 0.04) 74%, rgba(0, 0, 0, 0.82) 100%),
       linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.96) 24%, rgba(0, 0, 0, 0.74) 40%, rgba(0, 0, 0, 0.25) 58%, rgba(0, 0, 0, 0.04) 76%, rgba(0, 0, 0, 0) 100%),
-      url("./assets/image-hero-product-main-green.webp") 100% 50% / 86% auto no-repeat;
+      url("./assets/image-hero-product-main-green-v2.webp") 100% 50% / 86% auto no-repeat;
   }
 
   .hero__copy {
@@ -1875,6 +1974,19 @@ td {
     max-width: 18rem;
     padding: 10px 12px;
     font-size: 0.86rem;
+  }
+
+  .nutrition__spotlight {
+    max-width: 720px;
+    padding: 20px 26px 22px;
+  }
+
+  .nutrition__spotlight-grid {
+    margin-top: 12px;
+  }
+
+  .nutrition__spotlight-metric > span {
+    font-size: 1.05rem;
   }
 
   .product-stage {
