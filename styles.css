@@ -152,7 +152,9 @@ h1 strong {
 
 .hero__nutrition-proof {
   width: fit-content;
-  max-width: 20rem;
+  display: grid;
+  gap: 1px;
+  max-width: 15rem;
   margin-top: 12px;
   padding: 8px 10px;
   border: 1px solid rgba(207, 239, 85, 0.74);
@@ -166,21 +168,26 @@ h1 strong {
   line-height: 1.55;
 }
 
-.hero__nutrition-proof-line {
-  display: block;
-}
-
-.hero__nutrition-proof-chunk {
-  white-space: nowrap;
-}
-
 .hero__nutrition-proof strong {
-  color: #ddff61;
+  color: #ff6a1a;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 1.24em;
+  font-size: 1.3em;
   font-weight: 900;
-  text-shadow: 0 0 12px rgba(207, 239, 85, 0.42);
+  text-shadow: 0 0 12px rgba(255, 106, 26, 0.48);
   white-space: nowrap;
+}
+
+.hero__nutrition-proof sup {
+  color: #ff8a45;
+  font-size: 0.72em;
+}
+
+.hero__nutrition-proof small {
+  margin-top: 2px;
+  color: #a99d95;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .hero__actions {
@@ -937,18 +944,19 @@ td {
 
 .nutrition__inulin th,
 .nutrition__inulin td {
-  color: #f5f9dc;
-  border-color: rgba(210, 228, 114, 0.82);
-  background: rgba(184, 207, 69, 0.26);
+  color: #fff4ec;
+  border-color: rgba(255, 106, 26, 0.82);
+  background: rgba(255, 106, 26, 0.16);
   font-weight: 900;
 }
 
 .nutrition__inulin th {
-  box-shadow: inset 4px 0 0 var(--accent);
+  box-shadow: inset 4px 0 0 #ff6a1a;
 }
 
 .nutrition__inulin td {
-  color: #e5efb0;
+  color: #ff8a45;
+  text-shadow: 0 0 11px rgba(255, 106, 26, 0.42);
 }
 
 .nutrition__polyphenol {
@@ -1311,37 +1319,6 @@ td {
   color: var(--muted);
   line-height: 1.65;
   font-size: 0.82rem;
-}
-
-.nutrition .nutrition__key-message {
-  display: grid;
-  gap: 2px;
-  max-width: 680px;
-  margin: 12px auto 10px;
-  padding: 10px 12px;
-  border: 1px solid rgba(207, 239, 85, 0.7);
-  border-left: 4px solid #cfef55;
-  border-radius: 4px;
-  color: #f4f8dd;
-  background: rgba(184, 207, 69, 0.12);
-  font-size: 0.82rem;
-  font-weight: 800;
-  line-height: 1.65;
-  text-align: left;
-}
-
-.nutrition__key-message strong {
-  color: #ddff61;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 1.25em;
-  font-weight: 900;
-  text-shadow: 0 0 12px rgba(207, 239, 85, 0.34);
-  white-space: nowrap;
-}
-
-.nutrition .nutrition__support {
-  margin-top: 0;
-  font-size: 0.78rem;
 }
 
 .faq__answer {
@@ -1903,7 +1880,7 @@ td {
   }
 
   .hero__nutrition-proof {
-    max-width: 29rem;
+    max-width: 18rem;
     padding: 10px 12px;
     font-size: 0.86rem;
   }
