@@ -182,8 +182,11 @@ h1 strong {
   font-size: 0.72em;
 }
 
-.hero__nutrition-proof small {
-  margin-top: 2px;
+.hero__nutrition-proof-note {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  margin-left: 10px;
   color: #a99d95;
   font-size: 0.58rem;
   font-weight: 700;
@@ -942,20 +945,9 @@ td {
   line-height: 1.45;
 }
 
-.nutrition__inulin th,
-.nutrition__inulin td {
-  color: #fff4ec;
-  border-color: rgba(255, 106, 26, 0.82);
-  background: rgba(255, 106, 26, 0.16);
-  font-weight: 900;
-}
-
-.nutrition__inulin th {
-  box-shadow: inset 4px 0 0 #ff6a1a;
-}
-
-.nutrition__inulin td {
+.nutrition__highlight-value {
   color: #ff8a45;
+  font-weight: 900;
   text-shadow: 0 0 11px rgba(255, 106, 26, 0.42);
 }
 
