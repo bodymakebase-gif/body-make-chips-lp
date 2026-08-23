@@ -60,6 +60,28 @@ if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-mot
   revealTargets.forEach((target) => target.classList.add("is-visible"));
 }
 
+const stickyCta = document.querySelector(".sticky-cta");
+const stickyCtaExclusionSections = [document.querySelector(".hero-v2"), document.querySelector(".final-cta")].filter(Boolean);
+
+if (stickyCta && stickyCtaExclusionSections.length && "IntersectionObserver" in window) {
+  const visibleExclusionSections = new Set();
+  const syncStickyCta = () => {
+    document.body.classList.toggle("is-sticky-cta-hidden", visibleExclusionSections.size > 0);
+  };
+
+  const stickyCtaObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) visibleExclusionSections.add(entry.target);
+      else visibleExclusionSections.delete(entry.target);
+    });
+    syncStickyCta();
+  }, { threshold: 0.08 });
+
+  stickyCtaExclusionSections.forEach((section) => stickyCtaObserver.observe(section));
+} else if (stickyCta && document.querySelector(".hero-v2")) {
+  document.body.classList.add("is-sticky-cta-hidden");
+}
+
 const noticeForm = document.querySelector("#notice-signup");
 if (noticeForm) {
   const noticeEmail = noticeForm.elements.email;
