@@ -30,7 +30,7 @@
       ]}
     </script>
     <link rel="stylesheet" href="./styles.css?v=20260929-09" />
-    <link rel="stylesheet" href="./prelaunch.css?v=20260929-10" />
+    <link rel="stylesheet" href="./prelaunch.css?v=20260929-11" />
   </head>
   <body class="lp-v2 lp-prelaunch">
     <a class="skip-link" href="#main-content">本文へ移動</a>
@@ -50,7 +50,7 @@
           <div class="hero-v2__copy">
             <p class="eyebrow">BODY-MAKE CHIPS / USUSHIO</p>
             <h1 id="hero-title"><span>ポテチに擬態した、</span><span>食物繊維。</span></h1>
-            <p class="hero-v2__tagline">デスクの上に、<wbr>小さな背徳を。</p>
+            <p class="hero-v2__tagline"><span>デスクの上に、</span><wbr><span>小さな背徳を。</span></p>
           </div>
           <picture class="hero-v2__image"><img src="./assets/hero-desk-v3.webp" width="1536" height="1024" alt="午後のデスク。キーボードの横に置いたBODY-MAKE CHIPSと小皿から、薄いチップスをひとつまみする手元" fetchpriority="high" /></picture>
           <div class="hero-v2__commerce">
@@ -169,7 +169,12 @@
         <div class="container">
           <div class="lineup__head reveal"><p class="section-label section-label--dark">LINEUP</p><h2 id="lineup-title">まずは２袋から。<br /><span class="phrase">サクサクを、</span><span class="phrase">確かめてほしい。</span></h2><p>販売開始に向けて、３つのセットをご用意しています。<br />販売予定価格は、すべて{{priceTerms}}です。</p></div>
           <p class="lineup__notice">現在、{{saleLabel}}です。まだご注文いただけません。</p>
-          <div class="lineup-grid">{{lineupCards}}
+          <div class="lineup-grid" id="lineup-slider" role="region" aria-label="３つのセット" data-mobile-reveal>{{lineupCards}}
+          </div>
+          <div class="lineup-controls" hidden>
+            <button type="button" data-lineup-step="-1" aria-label="前のセットを見る" aria-controls="lineup-slider">←</button>
+            <div class="lineup-controls__position"><span data-lineup-current aria-live="polite" aria-atomic="true">1 / 3</span><span>スワイプで比較</span></div>
+            <button type="button" data-lineup-step="1" aria-label="次のセットを見る" aria-controls="lineup-slider">→</button>
           </div>
           <div class="lineup__footnotes"><p>販売開始時は、すべて買い切りでのご用意です。定期購入ではありません。<br />初めての方は少量から、体調に合わせてお楽しみください。</p><a class="text-link" href="#ingredients">食べ方について <span aria-hidden="true">↗</span></a></div>
           <p class="launch-notice">{{notice}}</p>
@@ -213,6 +218,6 @@
     <footer class="site-footer"><a class="site-logo" href="#top">BODY-MAKE CHIPS</a><nav aria-label="フッターナビゲーション"><a href="#about">商品について</a><a href="#nutrition-details">栄養成分</a><a href="#faq">よくあるご質問</a><a href="#lineup">セットを見る</a><a href="./contact.html">お問い合わせ</a><a href="./legal.html">特定商取引法に基づく表記</a><a href="./privacy.html">プライバシーポリシー</a></nav><p>© BODY-MAKE CHIPS</p></footer>
     <div class="sticky-cta" hidden><p>{{saleLabel}}｜{{trialName}} {{trialPrice}}円<span>（{{priceTerms}}）</span></p><a href="#lineup">セットを見る <span aria-hidden="true">→</span></a></div>
     <script id="sale-config" type="application/json">{{saleConfig}}</script>
-    <script src="./script.js?v=20260929-09" defer></script>
+    <script src="./script.js?v=20260929-11" defer></script>
   </body>
 </html>

@@ -60,20 +60,42 @@ document.addEventListener('focusin', event => {
 window.addEventListener('resize', () => { if (window.innerWidth >= 1040) closeMenu(); });
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const mobileStory = window.matchMedia('(max-width:719px)');
+const storyVisual = document.querySelector('.story__visual');
+const storyBody = document.querySelector('.story__body');
+const storyLayout = document.querySelector('.story__inner');
+function placeStoryPhoto() {
+  if (!storyVisual || !storyBody || !storyLayout) return;
+  // One photograph, placed in the text flow on phones and in its desktop column.
+  const parent = mobileStory.matches ? storyBody : storyLayout;
+  if (storyVisual.parentElement === parent) return;
+  if (mobileStory.matches) storyBody.prepend(storyVisual);
+  else storyLayout.append(storyVisual);
+}
+placeStoryPhoto();
+mobileStory.addEventListener('change', placeStoryPhoto);
 // Without JavaScript (or with reduced motion), copy remains visible. Otherwise
-// each reveal waits invisibly until its fixed anchor reaches the viewport center.
+// Desktop reveals at the center; mobile starts as content enters the lower screen.
 if ('IntersectionObserver' in window && !reducedMotion.matches) {
   const pending = new Map();
+  const mobileMotion = window.matchMedia('(max-width:719px)');
   let centerObserver;
   let motionResizeFrame = 0;
   let skippedFrame = 0;
-  document.querySelectorAll('.reveal').forEach(target => {
+  document.querySelectorAll('.reveal, [data-mobile-reveal]').forEach(target => {
+    // Sliding cards stay readable; animate the mobile rail as one surface.
+    if (mobileMotion.matches && target.matches('.lineup-card')) return;
+    if (target.hasAttribute('data-mobile-reveal')) {
+      if (!mobileMotion.matches) return;
+      target.classList.add('reveal');
+    }
     const anchor = document.createElement('span');
     anchor.className = 'motion-trigger';
     anchor.setAttribute('aria-hidden', 'true');
     target.append(anchor);
     target.classList.add('motion-pending');
     pending.set(anchor, {
+      target,
       animate: () => {
         target.classList.remove('motion-pending');
         target.classList.add('is-animated');
@@ -87,6 +109,7 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
     chart.classList.add('motion-ready');
     // Observe the fixed track, not the bar whose transform changes its bounds.
     pending.set(addition.parentElement, {
+      target: chart,
       animate: () => chart.classList.add('is-animated'),
       show: () => chart.classList.remove('motion-ready')
     });
@@ -100,11 +123,15 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
   }
   function showSkippedContent() {
     skippedFrame = 0;
-    // A deep link or fast jump can pass over the entire observation band.
-    // Reveal passed anchors statically, including tall blocks still on screen.
-    const upperEdge = window.innerHeight * .38;
-    pending.forEach((_action, anchor) => {
-      if (anchor.getBoundingClientRect().top < upperEdge) finish(anchor, false);
+    // A touch scroll can cross the entire trigger band between observer callbacks.
+    // Animate content still visible on mobile; only show fully passed content instantly.
+    const edge = window.innerHeight * (mobileMotion.matches ? .88 : .38);
+    pending.forEach((action, anchor) => {
+      const trigger = anchor.getBoundingClientRect();
+      const rect = action.target.getBoundingClientRect();
+      if (trigger.top >= edge || rect.right <= 0 || rect.left >= window.innerWidth) return;
+      const visible = rect.bottom > 0 && rect.top < window.innerHeight;
+      finish(anchor, mobileMotion.matches && visible);
     });
   }
   function scheduleSkippedContent() {
@@ -120,7 +147,9 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
         if (!entry.isIntersecting) return;
         finish(entry.target, true);
       });
-    }, {rootMargin:`-${Math.round(height * .38)}px 0px -${Math.round(height * .43)}px 0px`, threshold:0});
+    }, {rootMargin: mobileMotion.matches
+      ? `0px 0px -${Math.round(height * .12)}px 0px`
+      : `-${Math.round(height * .38)}px 0px -${Math.round(height * .43)}px 0px`, threshold:0});
     pending.forEach((_animate, anchor) => centerObserver.observe(anchor));
     showSkippedContent();
   }
@@ -146,6 +175,54 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
   });
 }
 
+const lineupSlider = document.querySelector('#lineup-slider');
+const lineupControls = document.querySelector('.lineup-controls');
+const mobileLineup = window.matchMedia('(max-width:719px)');
+const lineupCards = [...document.querySelectorAll('#lineup-slider .lineup-card')];
+let activeSet = 0;
+let lineupFrame = 0;
+function syncLineup() {
+  lineupFrame = 0;
+  if (!lineupSlider || !lineupControls) return;
+  lineupControls.hidden = !mobileLineup.matches;
+  if (!mobileLineup.matches) {
+    lineupSlider.removeAttribute('tabindex');
+    return;
+  }
+  lineupSlider.tabIndex = 0;
+  const rail = lineupSlider.getBoundingClientRect();
+  const center = rail.left + rail.width / 2;
+  activeSet = lineupCards.reduce((nearest, card, index) => {
+    const distance = item => Math.abs(item.getBoundingClientRect().left + item.offsetWidth / 2 - center);
+    return distance(card) < distance(lineupCards[nearest]) ? index : nearest;
+  }, 0);
+  const label = lineupControls.querySelector('[data-lineup-current]');
+  const value = `${activeSet + 1} / ${lineupCards.length}`;
+  if (label.textContent !== value) label.textContent = value;
+  lineupControls.querySelector('[data-lineup-step="-1"]').disabled = activeSet === 0;
+  lineupControls.querySelector('[data-lineup-step="1"]').disabled = activeSet === lineupCards.length - 1;
+}
+function selectSet(index, smooth = true) {
+  const card = lineupCards[Math.max(0, Math.min(lineupCards.length - 1, index))];
+  if (!lineupSlider || !card) return;
+  const left = card.getBoundingClientRect().left - lineupSlider.getBoundingClientRect().left
+    + lineupSlider.scrollLeft - (lineupSlider.clientWidth - card.offsetWidth) / 2;
+  lineupSlider.scrollTo({left, behavior: smooth && !reducedMotion.matches ? 'smooth' : 'instant'});
+}
+function scheduleLineup() { if (!lineupFrame) lineupFrame = requestAnimationFrame(syncLineup); }
+lineupSlider?.addEventListener('scroll', scheduleLineup, {passive:true});
+lineupSlider?.addEventListener('keydown', event => {
+  if (!mobileLineup.matches || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+  event.preventDefault();
+  selectSet(event.key === 'Home' ? 0 : event.key === 'End' ? lineupCards.length - 1 : activeSet + (event.key === 'ArrowRight' ? 1 : -1));
+});
+lineupControls?.addEventListener('click', event => {
+  const button = event.target.closest('[data-lineup-step]');
+  if (button) selectSet(activeSet + Number(button.dataset.lineupStep));
+});
+window.addEventListener('resize', scheduleLineup);
+syncLineup();
+
 function resolveAnchor(hash) {
   let id;
   try { id = decodeURIComponent(hash.slice(1)); } catch { return null; }
@@ -167,7 +244,12 @@ function scrollToAnchor(hash, {smooth = false, focus = false} = {}) {
     if (!focusTarget.matches('a,button,input,summary,[tabindex]')) focusTarget.setAttribute('tabindex', '-1');
     focusTarget.focus({preventScroll:true});
   }
-  target.scrollIntoView({behavior:smooth && !reducedMotion.matches ? 'smooth' : 'instant', block:'start'});
+  if (mobileLineup.matches && target.matches('.lineup-card')) {
+    selectSet(lineupCards.indexOf(target), false);
+    document.querySelector('#lineup').scrollIntoView({behavior:smooth && !reducedMotion.matches ? 'smooth' : 'instant', block:'start'});
+  } else {
+    target.scrollIntoView({behavior:smooth && !reducedMotion.matches ? 'smooth' : 'instant', block:'start'});
+  }
 }
 document.addEventListener('click', event => {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

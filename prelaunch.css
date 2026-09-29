@@ -792,3 +792,110 @@
     mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   }
 }
+
+/* Mobile editorial layout: keep the desktop composition and buying grid. */
+.inulin-explanation strong {
+  background: linear-gradient(transparent 58%, #bfda78 58%, #bfda78 94%, transparent 94%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.lineup-controls { display: none; }
+@media (min-width:720px) {
+  .story__narrative { grid-column: 1; grid-row: 1; }
+  .story__visual { grid-column: 2; grid-row: 1; }
+}
+@media (max-width:719px) {
+  .lp-prelaunch .hero-v2__inner { position: relative; width: 100%; padding: 0 0 24px; }
+  .lp-prelaunch .hero-v2__copy { width: 64%; min-height: 330px; padding: 36px 20px 20px; }
+  .hero-v2__copy .eyebrow { max-width: 180px; font-size: .54rem; line-height: 1.7; letter-spacing: .12em; }
+  .lp-prelaunch .hero-v2 h1 { margin-top: 22px; font-size: clamp(1.05rem,5vw,1.8rem); line-height: 1.6; letter-spacing: -.045em; }
+  .lp-prelaunch .hero-v2 h1 > span:first-child { white-space: nowrap; }
+  .lp-prelaunch .hero-v2 h1 > span:last-child { margin-top: 4px; font-size: 1.4em; }
+  .hero-v2__tagline { max-width: 11em; margin-top: 30px; font-size: clamp(.8rem,3.45vw,1rem); line-height: 1.9; }
+  .hero-v2__tagline > span { display: block; white-space: nowrap; }
+  .hero-v2__tagline wbr { display: none; }
+  .lp-prelaunch .hero-v2__image { position: absolute; top: 0; left: 35%; width: 65%; height: 325px; margin: 0; aspect-ratio: auto; }
+  .lp-prelaunch .hero-v2__image img { object-position: 45% center; }
+  .lp-prelaunch .hero-v2__image::after { background: linear-gradient(90deg,#10120e,rgba(16,18,14,.7) 15%,transparent 48%),linear-gradient(180deg,rgba(16,18,14,.05) 65%,#10120e); }
+  .hero-v2__commerce { margin: 0 20px; }
+  .hero-summary { margin: 0; padding-block: 12px 16px; }
+  .hero-summary > .hero-summary__facts { gap: 3px 12px; font-size: .8rem; }
+  .lp-prelaunch .hero-summary .hero-v2__lead { font-size: .82rem; }
+  .hero-v2__commerce .offer-summary { margin-top: 16px; }
+  .hero-v2__commerce .cta-button { margin-top: 16px; }
+  .hero-v2__image-note { margin: 20px 20px 0; font-size: .65rem; }
+
+  .lp-prelaunch .taste__inner { padding-block: 56px 28px; }
+  .lp-prelaunch .taste__copy { max-width: none; }
+  .lp-prelaunch .taste h2 { font-size: clamp(1.7rem,7.8vw,2.4rem); }
+  .lp-prelaunch .taste .prose { font-size: .9rem; }
+  .lp-prelaunch .taste__image { object-position: 67% center; }
+  .lp-prelaunch .taste::after { background: linear-gradient(90deg,rgba(3,4,3,.91),rgba(3,4,3,.73) 55%,rgba(3,4,3,.22)),linear-gradient(180deg,rgba(3,4,3,.1),rgba(3,4,3,.3)); }
+  .taste__image-note { margin-top: 30px; font-size: .65rem; }
+  .lp-prelaunch .final-cta__copy { padding: 56px 20px 88px; }
+  .lp-prelaunch .final-cta h2 { font-size: clamp(1.8rem,7.8vw,2.4rem); }
+  .lp-prelaunch .final-cta__image { object-position: 72% center; }
+  .lp-prelaunch .final-cta::after { background: linear-gradient(90deg,rgba(3,4,3,.9),rgba(3,4,3,.76) 54%,rgba(3,4,3,.32)); }
+  .lp-prelaunch .final-cta .cta-button { width: 100%; }
+  .final-cta__image-note { right: 20px; left: 20px; font-size: .65rem; }
+
+  .nutrition-editorial { gap: 28px; }
+  .nutrition-main { padding-bottom: 28px; border-bottom: 1px solid #46543c; }
+  .nutrition-support { gap: 24px; }
+  .nutrition-stat { padding-top: 0; border-top: 0; }
+  .nutrition-stat::after { display: none; }
+
+  .story__inner { display: flow-root; }
+  .story__visual { float: right; width: 44%; margin: 6px -4px 18px 20px; }
+  .story-photo { padding: 7px 7px 0; rotate: 3deg; box-shadow: 0 10px 24px #37442824; }
+  .story-photo img { aspect-ratio: .85; }
+  .story-photo__caption { padding: 12px 0; font-size: .46rem; letter-spacing: .09em; }
+  .story__visual figcaption { margin-top: 12px; font-size: .6rem; line-height: 1.7; }
+  .story__body { font-size: .89rem; line-height: 2; }
+  .story__body p + p { margin-top: 24px; clear: both; }
+  .story__body p > br { display: none; }
+  .story__signature { clear: both; }
+
+  .lp-prelaunch .lineup-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: min(82vw,310px);
+    gap: 14px;
+    margin-inline: -16px;
+    padding: 6px 16px 22px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+  }
+  .lineup-grid::-webkit-scrollbar { display: none; }
+  .lp-prelaunch .lineup-card { min-width: 0; padding: 22px 20px; scroll-snap-align: center; }
+  .lp-prelaunch .lineup-card:hover { transform: none; translate: none; }
+  .lp-prelaunch .lineup-card__audience { min-height: 2.8em; margin-bottom: 12px; font-size: .78rem; }
+  .lp-prelaunch .lineup-card h3 { font-size: 1.35rem; }
+  .lp-prelaunch .lineup-card__price { margin-top: 20px; }
+  .lp-prelaunch .lineup-card__price strong { font-size: 2.65rem; }
+  .lp-prelaunch .lineup-card__terms { font-size: .75rem; }
+  .lp-prelaunch .lineup-card__unit { font-size: .78rem; }
+  .lp-prelaunch .lineup-card .sale-state { margin-top: 20px; padding: 9px; font-size: .8rem; }
+  .lp-prelaunch .lineup-card__delivery { margin-top: 16px; }
+  .lp-prelaunch .lineup-card__delivery, .lp-prelaunch .lineup-card__note { font-size: .73rem; }
+  .lineup-controls { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .lineup-controls[hidden] { display: none; }
+  .lineup-controls button { width: 44px; height: 44px; border: 1px solid #9fae85; border-radius: 50%; background: transparent; color: #344e1c; font-size: 1.2rem; cursor: pointer; }
+  .lineup-controls button:disabled { opacity: .28; cursor: default; }
+  .lineup-controls__position { display: flex; align-items: center; gap: 14px; color: #526341; font-size: .7rem; }
+  [data-lineup-current] { font: 600 .8rem Arial,sans-serif; letter-spacing: .12em; }
+
+  .motion-trigger { top: min(18%,48px); }
+  .reveal.is-animated, .story__visual.is-animated { animation: enter-mobile 900ms cubic-bezier(.22,.61,.36,1) both; animation-delay: min(var(--reveal-delay,0ms),100ms); }
+  .scene-card.is-animated img { animation-duration: 1400ms; }
+  .nutrition-main.is-animated .nutrition-main__fact dd, .nutrition-stat.is-animated > dd { animation: none; }
+}
+@keyframes enter-mobile { from { opacity: 0; transform: translate3d(0,24px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+@media (max-width:359px) {
+  .lp-prelaunch .hero-v2__copy { min-height: 300px; }
+  .lp-prelaunch .hero-v2__image { height: 295px; }
+  .lp-prelaunch .hero-v2__image img { object-position: 35% center; }
+}
