@@ -762,3 +762,33 @@
 @media (prefers-reduced-motion:reduce) {
   .lp-prelaunch .reveal.motion-pending { opacity: 1; pointer-events: auto; }
 }
+
+/* Keep the approved desktop composition on ultrawide displays.
+   Text already stops at 1120px; photographs must also stop growing.
+   All existing layouts through 1920px remain untouched. */
+@media (min-width:1921px) {
+  .lp-prelaunch .hero-v2__image {
+    /* The existing 26% / 74% split, on a centered 1920px photographic stage. */
+    left: calc(50% - 460.8px);
+    right: auto;
+    width: 1420.8px;
+    mask-image: linear-gradient(90deg, #000 90%, transparent);
+  }
+  .hero-scroll { right: calc((100% - 1920px) / 2 + 30px); }
+  .lp-prelaunch .taste__image,
+  .lp-prelaunch .final-cta__image {
+    left: 50%;
+    right: auto;
+    width: 1920px;
+    transform: translateX(-50%);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .lp-prelaunch .taste::after,
+  .lp-prelaunch .final-cta::after {
+    left: 50%;
+    right: auto;
+    width: 1920px;
+    transform: translateX(-50%);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+}
