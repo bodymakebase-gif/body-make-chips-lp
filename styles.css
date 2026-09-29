@@ -19,7 +19,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: clip; }
 body { margin: 0; overflow-x: clip; color: var(--text); background: var(--black); font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif; line-height: 1.8; }
-body.menu-open { overflow: hidden; }
 img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; }
 button, input { font: inherit; }
@@ -254,7 +253,7 @@ section[id] { scroll-margin-top: calc(var(--header) + 10px); }
 .sticky-cta a { min-height: 52px; display: flex; align-items: center; justify-content: center; padding: 10px; color: #0b0d06; background: var(--green); box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: .78rem; font-weight: 950; text-align: center; text-decoration: none; }
 body.is-sticky-cta-hidden .sticky-cta { opacity: 0; visibility: hidden; transform: translateY(calc(100% + 24px)); }
 
-.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+.reveal { opacity: 1; transform: none; }
 .reveal.is-visible { opacity: 1; transform: none; }
 
 /* Shared legal/contact pages */

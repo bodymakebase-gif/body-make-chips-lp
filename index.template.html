@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BODY-MAKE CHIPS｜ポテチに擬態した、食物繊維。</title>
-    <meta name="description" content="ポテチに擬態した、食物繊維。国産キクイモのうすしおチップス。1袋15g・38kcal・食物繊維9.5g。お試し２袋880円（税込・送料込み）の販売を準備中です。" />
+    <meta name="description" content="ポテチに擬態した、食物繊維。国産キクイモのうすしおチップス。1袋15g・38kcal・食物繊維9.5g。{{trialName}}{{trialPrice}}円（{{priceTerms}}）の販売を準備中です。" />
     <meta name="theme-color" content="#050706" />
     <link rel="canonical" href="https://body-make-chips.jp/" />
     <meta property="og:type" content="website" />
@@ -41,7 +41,7 @@
         <nav id="site-nav" class="site-nav" aria-label="メインナビゲーション">
           <a href="#about">商品について</a><a href="#nutrition-details">栄養成分</a><a href="#lineup">セットを見る</a>
         </nav>
-        <a class="header-cta" href="#lineup">お試し２袋を見る <span aria-hidden="true">→</span></a>
+        <a class="header-cta" href="#lineup">{{trialName}}を見る <span aria-hidden="true">→</span></a>
       </div>
     </header>
     <main id="main-content">
@@ -58,9 +58,9 @@
               <p class="hero-summary__facts"><span class="hero-summary__basics">1袋15g <i aria-hidden="true">｜</i> 38kcal</span><span class="hero-summary__fiber">食物繊維9.5g <span class="hero-summary__inulin">（うちイヌリン6.8g）</span></span></p>
               <p class="hero-v2__lead">国産キクイモのうすしおチップス。</p>
             </div>
-            <div class="offer-summary"><p class="offer-summary__label">販売予定価格</p><p>お試し２袋 <strong>880<small>円</small></strong><span>（税込・送料込み）</span></p></div>
-            <a class="cta-button" href="#lineup" data-set-target="trial">お試し２袋を見る<span aria-hidden="true">→</span></a>
-            <p class="prelaunch-note">現在、販売準備中です。</p>
+            <div class="offer-summary"><p class="offer-summary__label">{{priceLabel}}</p><p>{{trialName}} <strong>{{trialPrice}}<small>円</small></strong><span>（{{priceTerms}}）</span></p></div>
+            <a class="cta-button" href="#lineup" data-set-target="trial">{{trialName}}を見る<span aria-hidden="true">→</span></a>
+            <p class="prelaunch-note">現在、{{saleLabel}}です。</p>
           </div>
           <p class="image-note hero-v2__image-note">画像は試作品をもとにしたイメージです。</p>
           <p class="hero-scroll" aria-hidden="true"><span></span>SCROLL TO CRUNCH</p>
@@ -167,47 +167,12 @@
       </section>
       <section id="lineup" class="section section--paper lineup" aria-labelledby="lineup-title" tabindex="-1">
         <div class="container">
-          <div class="lineup__head reveal"><p class="section-label section-label--dark">LINEUP</p><h2 id="lineup-title">まずは２袋から。<br /><span class="phrase">サクサクを、</span><span class="phrase">確かめてほしい。</span></h2><p>販売開始に向けて、３つのセットをご用意しています。<br />販売予定価格は、すべて税込・送料込みです。</p></div>
-          <p class="lineup__notice">現在、販売準備中です。まだご注文いただけません。</p>
-          <div class="lineup-grid">
-          <article id="set-trial" class="lineup-card lineup-card--trial reveal" tabindex="-1" aria-labelledby="set-trial-title" style="--reveal-delay:0ms">
-            <p class="lineup-card__audience">まずは味と食感を確かめたい方へ</p>
-            <h3 id="set-trial-title">お試し２袋</h3>
-            <p class="lineup-card__quantity">15g × ２袋</p>
-            <p class="lineup-card__price"><strong>880</strong><span>円</span></p>
-            <p class="lineup-card__terms">販売予定価格・税込・送料込み</p>
-            <p class="lineup-card__unit">１袋あたり440円</p>
-            <p class="sale-state">販売準備中</p>
-            <p class="lineup-card__delivery">追跡サービスなし（予定）</p>
-            <p class="lineup-card__note">お試しセットの購入回数に制限は設けません。</p>
-          </article>
-
-          <article id="set-desk" class="lineup-card reveal" tabindex="-1" aria-labelledby="set-desk-title" style="--reveal-delay:75ms">
-            <p class="lineup-card__audience">デスクや自宅に置いておきたい方へ</p>
-            <h3 id="set-desk-title">10袋セット</h3>
-            <p class="lineup-card__quantity">15g × 10袋</p>
-            <p class="lineup-card__price"><strong>3,800</strong><span>円</span></p>
-            <p class="lineup-card__terms">販売予定価格・税込・送料込み</p>
-            <p class="lineup-card__unit">１袋あたり380円</p>
-            <p class="sale-state">販売準備中</p>
-            <p class="lineup-card__delivery">追跡サービスあり（予定）</p>
-
-          </article>
-
-          <article id="set-stock" class="lineup-card reveal" tabindex="-1" aria-labelledby="set-stock-title" style="--reveal-delay:150ms">
-            <p class="lineup-card__audience">気に入った方のまとめ買いに</p>
-            <h3 id="set-stock-title">30袋セット</h3>
-            <p class="lineup-card__quantity">15g × 30袋</p>
-            <p class="lineup-card__price"><strong>10,500</strong><span>円</span></p>
-            <p class="lineup-card__terms">販売予定価格・税込・送料込み</p>
-            <p class="lineup-card__unit">１袋あたり350円</p>
-            <p class="sale-state">販売準備中</p>
-            <p class="lineup-card__delivery">追跡サービスあり（予定）</p>
-
-          </article>
+          <div class="lineup__head reveal"><p class="section-label section-label--dark">LINEUP</p><h2 id="lineup-title">まずは２袋から。<br /><span class="phrase">サクサクを、</span><span class="phrase">確かめてほしい。</span></h2><p>販売開始に向けて、３つのセットをご用意しています。<br />販売予定価格は、すべて{{priceTerms}}です。</p></div>
+          <p class="lineup__notice">現在、{{saleLabel}}です。まだご注文いただけません。</p>
+          <div class="lineup-grid">{{lineupCards}}
           </div>
           <div class="lineup__footnotes"><p>販売開始時は、すべて買い切りでのご用意です。定期購入ではありません。<br />初めての方は少量から、体調に合わせてお楽しみください。</p><a class="text-link" href="#ingredients">食べ方について <span aria-hidden="true">↗</span></a></div>
-          <p class="launch-notice">販売開始は、このページでお知らせします。</p>
+          <p class="launch-notice">{{notice}}</p>
         </div>
       </section>
 
@@ -229,7 +194,7 @@
           <details class="faq-item"><summary>ポテトチップスですか？</summary><div><p>国産キクイモを使った、うすしお味のチップスです。<br />じゃがいものポテトチップスとは原料が異なります。サクサクした食感をお楽しみください。</p></div></details>
           <details class="faq-item"><summary>油は使っていますか？</summary><div><p>油を加えず、ノンフライで仕上げています。<br />なお、油不使用は脂質ゼロという意味ではありません。脂質は１袋15gあたり1.2gです。</p></div></details>
           <details class="faq-item"><summary>いつ、どのくらい食べればよいですか？</summary><div><p>午後の仕事中など、間食を楽しみたいときにお召し上がりください。<br />初めての方は少量から、体調に合わせてお楽しみください。<br />体質や食べる量によって、おなかの張りなどを感じることがあります。</p></div></details>
-          <details class="faq-item"><summary>今、購入できますか？</summary><div><p>現在、販売準備中です。販売開始は、このページでお知らせします。</p></div></details>
+          <details class="faq-item"><summary>今、購入できますか？</summary><div><p>現在、{{saleLabel}}です。{{notice}}</p></div></details>
           <details class="faq-item"><summary>送料は別にかかりますか？</summary><div><p>お試し２袋・10袋セット・30袋セットの販売予定価格には、いずれも送料が含まれています。</p></div></details>
           <details class="faq-item"><summary>お試しセットは何度でも買えますか？</summary><div><p>販売開始後、お試し２袋の購入回数に制限は設けません。</p></div></details>
           <details class="faq-item"><summary>定期購入ですか？</summary><div><p>販売開始時は、すべて買い切りでのご用意です。定期購入ではありません。</p></div></details>
@@ -240,14 +205,14 @@
       <section id="final-cta" class="final-cta" aria-labelledby="final-title">
         <img class="final-cta__image" src="./assets/final-integrated-v11.webp" width="1536" height="1024" loading="lazy" alt="黒い小袋とボードに並べたBODY-MAKE CHIPSのイメージ" />
         <div class="final-cta__copy"><div class="reveal"><p class="section-label">YOUR NEXT BREAK</p><h2 id="final-title">次の15時に、<br />小さな背徳感を。</h2><p>サクサク、うすしお。<br />国産キクイモのBODY-MAKE CHIPS。</p>
-          <div class="offer-summary"><p class="offer-summary__label">販売予定価格</p><p>お試し２袋 <strong>880<small>円</small></strong><span>（税込・送料込み）</span></p></div>
-          <a class="cta-button" href="#lineup" data-set-target="trial">お試し２袋を見る<span aria-hidden="true">→</span></a><p class="prelaunch-note">現在、販売準備中です。</p>
+          <div class="offer-summary"><p class="offer-summary__label">{{priceLabel}}</p><p>{{trialName}} <strong>{{trialPrice}}<small>円</small></strong><span>（{{priceTerms}}）</span></p></div>
+          <a class="cta-button" href="#lineup" data-set-target="trial">{{trialName}}を見る<span aria-hidden="true">→</span></a><p class="prelaunch-note">現在、{{saleLabel}}です。</p>
         </div></div><p class="image-note final-cta__image-note">画像は試作品をもとにしたイメージです。</p>
       </section>
     </main>
     <footer class="site-footer"><a class="site-logo" href="#top">BODY-MAKE CHIPS</a><nav aria-label="フッターナビゲーション"><a href="#about">商品について</a><a href="#nutrition-details">栄養成分</a><a href="#faq">よくあるご質問</a><a href="#lineup">セットを見る</a><a href="./contact.html">お問い合わせ</a><a href="./legal.html">特定商取引法に基づく表記</a><a href="./privacy.html">プライバシーポリシー</a></nav><p>© BODY-MAKE CHIPS</p></footer>
-    <div class="sticky-cta" hidden><p>販売準備中｜お試し２袋 880円<span>（税込・送料込み）</span></p><a href="#lineup">セットを見る <span aria-hidden="true">→</span></a></div>
-    <script id="sale-config" type="application/json">{"saleStatus":"prelaunch"}</script>
+    <div class="sticky-cta" hidden><p>{{saleLabel}}｜{{trialName}} {{trialPrice}}円<span>（{{priceTerms}}）</span></p><a href="#lineup">セットを見る <span aria-hidden="true">→</span></a></div>
+    <script id="sale-config" type="application/json">{{saleConfig}}</script>
     <script src="./script.js?v=20260929-09" defer></script>
   </body>
 </html>

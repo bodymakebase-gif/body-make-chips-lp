@@ -1,5 +1,5 @@
 const contactFormEndpoint = "https://script.google.com/macros/s/AKfycbzDu1ED8vVhgp9NNOkncjxCqCKv2IT2_gz-ue2XgX9XBywKLyAuv_i6cYdbAk1KOxqitg/exec";
-const purchasesEnabled = false;
+
 
 function endpointIsConfigured() {
   try {
@@ -22,134 +22,192 @@ async function postToAppsScript(payload) {
   });
 }
 
-const menuToggle = document.querySelector(".menu-toggle");
-const siteNav = document.querySelector(".site-nav");
+// The static HTML and this value are both generated from site.config.json.
+// No checkout implementation exists in this release; a status change cannot enable orders.
+const saleConfigElement = document.querySelector('#sale-config');
+if (saleConfigElement) {
+  try {
+    const saleConfig = JSON.parse(saleConfigElement.textContent);
+    document.body.dataset.saleStatus = saleConfig.saleStatus === 'prelaunch' ? saleConfig.saleStatus : 'unavailable';
+  } catch { document.body.dataset.saleStatus = 'unavailable'; }
+}
 
-function closeMenu() {
+const menuToggle = document.querySelector('.menu-toggle');
+const siteNav = document.querySelector('.site-nav');
+function closeMenu({restoreFocus = false} = {}) {
   if (!menuToggle || !siteNav) return;
-  menuToggle.setAttribute("aria-expanded", "false");
-  menuToggle.setAttribute("aria-label", "メニューを開く");
-  siteNav.classList.remove("is-open");
-  document.body.classList.remove("menu-open");
+  const wasOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+  menuToggle.setAttribute('aria-expanded', 'false');
+  menuToggle.setAttribute('aria-label', 'メニューを開く');
+  siteNav.classList.remove('is-open');
+  if (wasOpen && restoreFocus) menuToggle.focus();
 }
-
-menuToggle?.addEventListener("click", () => {
-  const isOpen = menuToggle.getAttribute("aria-expanded") === "true";
-  menuToggle.setAttribute("aria-expanded", String(!isOpen));
-  menuToggle.setAttribute("aria-label", isOpen ? "メニューを開く" : "メニューを閉じる");
-  siteNav?.classList.toggle("is-open", !isOpen);
-  document.body.classList.toggle("menu-open", !isOpen);
+menuToggle?.addEventListener('click', () => {
+  const opening = menuToggle.getAttribute('aria-expanded') !== 'true';
+  menuToggle.setAttribute('aria-expanded', String(opening));
+  menuToggle.setAttribute('aria-label', opening ? 'メニューを閉じる' : 'メニューを開く');
+  siteNav?.classList.toggle('is-open', opening);
 });
-
-siteNav?.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu));
-window.addEventListener("resize", () => {
-  if (window.innerWidth >= 1040) closeMenu();
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeMenu({restoreFocus:true});
 });
+document.addEventListener('click', event => {
+  if (!event.target.closest('.site-header')) closeMenu();
+});
+document.addEventListener('focusin', event => {
+  if (!event.target.closest('.site-header')) closeMenu();
+});
+window.addEventListener('resize', () => { if (window.innerWidth >= 1040) closeMenu(); });
 
-const revealTargets = [...document.querySelectorAll(".reveal")];
-if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  const revealObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add("is-visible");
-      observer.unobserve(entry.target);
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+// Without JavaScript (or with reduced motion), copy remains visible. Otherwise
+// each reveal waits invisibly until its fixed anchor reaches the viewport center.
+if ('IntersectionObserver' in window && !reducedMotion.matches) {
+  const pending = new Map();
+  let centerObserver;
+  let motionResizeFrame = 0;
+  let skippedFrame = 0;
+  document.querySelectorAll('.reveal').forEach(target => {
+    const anchor = document.createElement('span');
+    anchor.className = 'motion-trigger';
+    anchor.setAttribute('aria-hidden', 'true');
+    target.append(anchor);
+    target.classList.add('motion-pending');
+    pending.set(anchor, {
+      animate: () => {
+        target.classList.remove('motion-pending');
+        target.classList.add('is-animated');
+      },
+      show: () => target.classList.remove('motion-pending')
     });
-  }, { rootMargin: "0px 0px -8%", threshold: 0.08 });
-  revealTargets.forEach((target) => revealObserver.observe(target));
-} else {
-  revealTargets.forEach((target) => target.classList.add("is-visible"));
-}
-
-const stickyCta = document.querySelector(".sticky-cta");
-const stickyCtaExclusionSections = [document.querySelector(".hero-v2"), document.querySelector(".final-cta")].filter(Boolean);
-
-if (stickyCta && stickyCtaExclusionSections.length && "IntersectionObserver" in window) {
-  const visibleExclusionSections = new Set();
-  const syncStickyCta = () => {
-    document.body.classList.toggle("is-sticky-cta-hidden", visibleExclusionSections.size > 0);
-  };
-
-  const stickyCtaObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) visibleExclusionSections.add(entry.target);
-      else visibleExclusionSections.delete(entry.target);
-    });
-    syncStickyCta();
-  }, { threshold: 0.08 });
-
-  stickyCtaExclusionSections.forEach((section) => stickyCtaObserver.observe(section));
-} else if (stickyCta && document.querySelector(".hero-v2")) {
-  document.body.classList.add("is-sticky-cta-hidden");
-}
-
-const noticeForm = document.querySelector("#notice-signup");
-if (noticeForm) {
-  const noticeEmail = noticeForm.elements.email;
-  const noticeButton = noticeForm.querySelector("button[type='submit']");
-  const noticeStatus = noticeForm.querySelector("#notice-status");
-  let noticeSubmitting = false;
-
-  function setNoticeStatus(message, state = "") {
-    if (!noticeStatus) return;
-    noticeStatus.textContent = message;
-    noticeStatus.classList.toggle("is-success", state === "success");
-    noticeStatus.classList.toggle("is-error", state === "error");
-  }
-
-  noticeForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (noticeSubmitting) return;
-
-    const honeypot = String(noticeForm.elements.website?.value || "").trim();
-    const email = String(noticeEmail?.value || "").trim().toLowerCase();
-
-    if (honeypot) {
-      noticeForm.reset();
-      setNoticeStatus("登録できませんでした。時間をおいて再度お試しください。", "error");
-      return;
-    }
-
-    if (!email || email.length > 254 || !noticeEmail.validity.valid) {
-      noticeEmail?.focus();
-      setNoticeStatus("有効なメールアドレスを入力してください。", "error");
-      return;
-    }
-
-    noticeSubmitting = true;
-    if (noticeButton) {
-      noticeButton.disabled = true;
-      noticeButton.textContent = "登録中…";
-    }
-    setNoticeStatus("登録しています…");
-
-    try {
-      await postToAppsScript({
-        contactType: "その他",
-        name: "販売開始通知希望",
-        email,
-        orderNumber: "",
-        message: "BODY-MAKE CHIPSの一般販売開始のお知らせを希望します。",
-        website: "",
-        submittedAt: new Date().toISOString(),
-        pageUrl: window.location.href.slice(0, 2000),
-        userAgent: navigator.userAgent.slice(0, 1000),
-      });
-      noticeForm.reset();
-      setNoticeStatus("登録を受け付けました。販売開始時にメールでお知らせします。", "success");
-    } catch (error) {
-      console.error("販売開始通知の登録に失敗しました。", error);
-      setNoticeStatus("登録できませんでした。通信環境を確認のうえ、再度お試しください。", "error");
-    } finally {
-      noticeSubmitting = false;
-      if (noticeButton) {
-        noticeButton.disabled = false;
-        noticeButton.textContent = "登録する";
-      }
-    }
   });
-
-  noticeEmail?.addEventListener("input", () => setNoticeStatus(""));
+  document.querySelectorAll('.fiber-chart').forEach(chart => {
+    const addition = chart.querySelector('.bar-fill--addition');
+    if (!addition) return;
+    chart.classList.add('motion-ready');
+    // Observe the fixed track, not the bar whose transform changes its bounds.
+    pending.set(addition.parentElement, {
+      animate: () => chart.classList.add('is-animated'),
+      show: () => chart.classList.remove('motion-ready')
+    });
+  });
+  function finish(anchor, animate) {
+    const action = pending.get(anchor);
+    if (!action) return;
+    pending.delete(anchor);
+    centerObserver?.unobserve(anchor);
+    action[animate ? 'animate' : 'show']();
+  }
+  function showSkippedContent() {
+    skippedFrame = 0;
+    // A deep link or fast jump can pass over the entire observation band.
+    // Reveal passed anchors statically, including tall blocks still on screen.
+    const upperEdge = window.innerHeight * .38;
+    pending.forEach((_action, anchor) => {
+      if (anchor.getBoundingClientRect().top < upperEdge) finish(anchor, false);
+    });
+  }
+  function scheduleSkippedContent() {
+    if (pending.size && !skippedFrame) skippedFrame = requestAnimationFrame(showSkippedContent);
+  }
+  function observeAtCenter() {
+    motionResizeFrame = 0;
+    centerObserver?.disconnect();
+    if (reducedMotion.matches) return;
+    const height = window.innerHeight;
+    centerObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        finish(entry.target, true);
+      });
+    }, {rootMargin:`-${Math.round(height * .38)}px 0px -${Math.round(height * .43)}px 0px`, threshold:0});
+    pending.forEach((_animate, anchor) => centerObserver.observe(anchor));
+    showSkippedContent();
+  }
+  observeAtCenter();
+  window.addEventListener('scroll', scheduleSkippedContent, {passive:true});
+  document.addEventListener('focusin', event => {
+    const target = event.target.closest?.('.motion-pending');
+    const anchor = target?.querySelector(':scope > .motion-trigger');
+    if (anchor) finish(anchor, false);
+  });
+  window.addEventListener('resize', () => {
+    if (!motionResizeFrame) motionResizeFrame = requestAnimationFrame(observeAtCenter);
+  });
+  reducedMotion.addEventListener('change', event => {
+    if (!event.matches) return;
+    centerObserver?.disconnect();
+    cancelAnimationFrame(skippedFrame);
+    skippedFrame = 0;
+    pending.clear();
+    document.querySelectorAll('.motion-pending').forEach(target => target.classList.remove('motion-pending'));
+    document.querySelectorAll('.motion-ready').forEach(target => target.classList.remove('motion-ready'));
+    document.querySelectorAll('.is-animated').forEach(target => target.classList.remove('is-animated'));
+  });
 }
+
+function resolveAnchor(hash) {
+  let id;
+  try { id = decodeURIComponent(hash.slice(1)); } catch { return null; }
+  if (id === 'nutrition') id = 'nutrition-details';
+  const target = document.getElementById(id);
+  if (!target) return null;
+  if (target.tagName === 'DETAILS') target.open = true;
+  for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+    if (parent.tagName === 'DETAILS') parent.open = true;
+  }
+  return target;
+}
+function scrollToAnchor(hash, {smooth = false, focus = false} = {}) {
+  const target = resolveAnchor(hash);
+  if (!target) return;
+  // The hero and closing CTAs reveal the first card in #lineup, with its section context.
+  const focusTarget = target.tagName === 'DETAILS' ? target.querySelector('summary') : target;
+  if (focus && focusTarget) {
+    if (!focusTarget.matches('a,button,input,summary,[tabindex]')) focusTarget.setAttribute('tabindex', '-1');
+    focusTarget.focus({preventScroll:true});
+  }
+  target.scrollIntoView({behavior:smooth && !reducedMotion.matches ? 'smooth' : 'instant', block:'start'});
+}
+document.addEventListener('click', event => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || link.hash.length < 2 || !resolveAnchor(link.hash)) return;
+  event.preventDefault();
+  closeMenu();
+  if (window.location.hash !== link.hash) history.pushState(null, '', link.hash);
+  scrollToAnchor(link.dataset.setTarget ? `#set-${link.dataset.setTarget}` : link.hash, {smooth:true,focus:true});
+});
+window.addEventListener('hashchange', () => scrollToAnchor(window.location.hash, {focus:true}));
+if (window.location.hash) {
+  resolveAnchor(window.location.hash);
+  requestAnimationFrame(() => scrollToAnchor(window.location.hash));
+}
+
+const stickyCta = document.querySelector('.sticky-cta');
+const hero = document.querySelector('.hero-v2');
+const stickyExclusions = [...document.querySelectorAll('#lineup, #ingredients, .comparison-notes, .image-note, #details, #faq, #final-cta, .site-footer')];
+let stickyFrame = 0;
+function syncStickyCta() {
+  stickyFrame = 0;
+  if (!stickyCta || !hero) return;
+  const headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height || 0;
+  const keyboardVisible = window.visualViewport && window.visualViewport.height < window.innerHeight * .75;
+  const editing = document.activeElement?.matches('input,textarea,select,[contenteditable="true"]');
+  const overlap = stickyExclusions.some(section => {
+    const rect = section.getBoundingClientRect();
+    return rect.top < window.innerHeight && rect.bottom > headerHeight;
+  });
+  stickyCta.hidden = window.innerWidth >= 720 || hero.getBoundingClientRect().bottom > headerHeight || overlap || Boolean(keyboardVisible || editing);
+}
+function scheduleStickyCta() { if (!stickyFrame) stickyFrame = requestAnimationFrame(syncStickyCta); }
+window.addEventListener('scroll', scheduleStickyCta, {passive:true});
+window.addEventListener('resize', scheduleStickyCta);
+window.visualViewport?.addEventListener('resize', scheduleStickyCta);
+document.addEventListener('focusin', scheduleStickyCta);
+document.addEventListener('focusout', scheduleStickyCta);
+document.addEventListener('toggle', scheduleStickyCta, true);
+syncStickyCta();
 
 const contactForm = document.querySelector("#contact-form");
 if (contactForm) {

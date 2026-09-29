@@ -1,0 +1,13 @@
+{
+  "saleStatus": "prelaunch",
+  "saleLabel": "販売準備中",
+  "priceLabel": "販売予定価格",
+  "priceTerms": "税込・送料込み",
+  "notice": "販売開始は、このページでお知らせします。",
+  "bagGrams": 15,
+  "sets": [
+    { "id": "trial", "name": "お試し２袋", "quantity": 2, "quantityLabel": "２", "price": 880, "audience": "まずは味と食感を確かめたい方へ", "tracking": false, "note": "お試しセットの購入回数に制限は設けません。" },
+    { "id": "desk", "name": "10袋セット", "quantity": 10, "quantityLabel": "10", "price": 3800, "audience": "デスクや自宅に置いておきたい方へ", "tracking": true },
+    { "id": "stock", "name": "30袋セット", "quantity": 30, "quantityLabel": "30", "price": 10500, "audience": "気に入った方のまとめ買いに", "tracking": true }
+  ]
+}
