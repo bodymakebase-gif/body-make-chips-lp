@@ -899,3 +899,79 @@
   .lp-prelaunch .hero-v2__image { height: 240px; }
   .lp-prelaunch .hero-v2__image img { object-position: 48% center; }
 }
+
+/* Approved 15-D lettering: two paper tears reveal a hint of green. */
+.lp-prelaunch .hero-v2 .hero-title--torn {
+  position: relative;
+  width: fit-content;
+  overflow: visible;
+  color: #f5f0e2;
+  font-family: "Yu Gothic", Meiryo, sans-serif;
+  text-shadow: none;
+}
+.lp-prelaunch .hero-title--torn > span {
+  position: relative;
+  width: max-content;
+  max-width: none;
+  isolation: isolate;
+}
+.lp-prelaunch .hero-title--torn > .hero-title__first {
+  display: flex;
+  align-items: baseline;
+  gap: .065em;
+  white-space: nowrap;
+  font-weight: 900;
+  line-height: 1.7;
+  letter-spacing: -.055em;
+}
+.hero-title__link {
+  display: inline-block;
+  margin-inline: .035em;
+  font-size: .62em;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -.04em;
+}
+.hero-title__link--end { margin-left: .11em; }
+.hero-title__word {
+  display: inline-block;
+  position: relative;
+  isolation: isolate;
+  font-size: 1.4em;
+  line-height: 1.5;
+  letter-spacing: -.08em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.hero-title__potato { margin-left: -.015em; }
+.hero-title__mimic {
+  width: 2.15em;
+  color: transparent;
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+}
+.hero-title__art {
+  position: absolute;
+  top: .035em;
+  left: -9%;
+  width: 118%;
+  max-width: none;
+  height: auto;
+  pointer-events: none;
+}
+.lp-prelaunch .hero-v2 .hero-title--torn > span:last-child {
+  margin-top: .12em;
+  font-size: 1.24em;
+  line-height: 1.45;
+  letter-spacing: -.045em;
+  color: var(--green);
+}
+@media (max-width:719px) {
+  .lp-prelaunch .hero-v2 .hero-title--torn > span:last-child {
+    margin-top: .2em;
+    font-size: 1.4em;
+  }
+}
+@media (forced-colors:active) {
+  .hero-title__mimic { color: CanvasText; }
+  .hero-title__art { display: none; }
+}
