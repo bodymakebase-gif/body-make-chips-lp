@@ -289,7 +289,8 @@ body.is-sticky-cta-hidden .sticky-cta { opacity: 0; visibility: hidden; transfor
 .form-status--error { color: #ff806c; }
 .legal-operator { margin-top: 8px; color: var(--green); font-weight: 900; }
 .legal-block { margin-top: 30px; }
-.legal-block p { margin-top: 12px; color: #b9bdb4; font-size: .82rem; }
+.legal-block p { margin-top: 12px; color: #c8ccc3; font-size: 1rem; line-height: 1.85; }
+.legal-block ul { margin: 14px 0; padding-left: 1.4em; font-size: 1rem; line-height: 1.85; }
 .legal-block a { color: var(--green); }
 .site-footer--subpage { padding-bottom: 38px; }
 

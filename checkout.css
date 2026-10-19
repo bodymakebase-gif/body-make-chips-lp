@@ -1,0 +1,20 @@
+.lp-prelaunch .lineup-card .buy-button { position: relative; z-index: 1; width: 100%; min-height: 52px; margin-top: 20px; padding: 12px 16px; border: 1px solid #40520d; border-radius: 2px; background: #263707; color: #fff; font: inherit; font-weight: 750; cursor: pointer; }
+.lp-prelaunch .lineup-card .buy-button:disabled { border-color: #c5c8ba; background: #e2e4dc; color: #666c5c; cursor: default; }
+.checkout-dialog { position: fixed; inset: 0; width: min(520px, calc(100% - 24px)); max-height: calc(100dvh - 32px); margin: auto; padding: 30px; border: 1px solid #d5d9c9; border-radius: 8px; color: #202b16; background: #faf9f4; box-shadow: 0 24px 90px #0007; overflow: auto; }
+.checkout-dialog::backdrop { background: #050805b8; }
+.checkout-dialog h2 { margin: 14px 0 4px; font-size: 1.5rem; line-height: 1.6; }
+.checkout-dialog p { line-height: 1.8; }
+.checkout-dialog__close { display: block; margin-left: auto; min-height: 44px; padding: 4px 10px; background: transparent; border: 0; color: #36482a; font: inherit; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.checkout-dialog__total { margin: 20px 0; padding: 16px 0; border-block: 1px solid #d2d8c7; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.checkout-dialog__total strong { font-size: 1.9rem; white-space: nowrap; }
+.checkout-dialog__conditions { font-size: .9rem; }
+.checkout-dialog__conditions a { text-underline-offset: 3px; }
+.checkout-verification { margin-top: 20px; }
+.checkout-message { min-height: 3.6em; margin: 12px 0; font-size: .9rem; }
+.checkout-submit, .order-check { display: block; width: 100%; min-height: 54px; border: 1px solid #829d30; border-radius: 3px; padding: 12px; background: #b7e226; color: #162406; font: inherit; font-weight: 800; cursor: pointer; }
+.checkout-submit:disabled { background: #dfe4d1; color: #707761; border-color: #c8ceba; cursor: default; }
+.order-check { width: auto; margin: 24px 0; padding-inline: 30px; }
+.order-check[hidden] { display: none; }
+.checkout-dialog :focus-visible, .order-check:focus-visible { outline: 3px solid #527411; outline-offset: 4px; }
+@media (max-width: 480px) { .checkout-dialog { padding: 16px; } .checkout-dialog__total { display: block; } .checkout-dialog__total strong { display: block; } }
+@media (hover: hover) { .buy-button:not(:disabled):hover, .checkout-submit:not(:disabled):hover, .order-check:hover { filter: brightness(1.08); } }

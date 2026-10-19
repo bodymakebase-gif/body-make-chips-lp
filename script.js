@@ -23,12 +23,12 @@ async function postToAppsScript(payload) {
 }
 
 // The static HTML and this value are both generated from site.config.json.
-// No checkout implementation exists in this release; a status change cannot enable orders.
+// Purchase requests are handled separately; the API also verifies sale availability.
 const saleConfigElement = document.querySelector('#sale-config');
 if (saleConfigElement) {
   try {
     const saleConfig = JSON.parse(saleConfigElement.textContent);
-    document.body.dataset.saleStatus = saleConfig.saleStatus === 'prelaunch' ? saleConfig.saleStatus : 'unavailable';
+    document.body.dataset.saleStatus = ['prelaunch', 'live'].includes(saleConfig.saleStatus) ? saleConfig.saleStatus : 'unavailable';
   } catch { document.body.dataset.saleStatus = 'unavailable'; }
 }
 
