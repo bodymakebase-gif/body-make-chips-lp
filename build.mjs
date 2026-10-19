@@ -25,6 +25,8 @@ const tokens = {
   availabilityCopy: escape(live ? config.notice : `現在、${config.saleLabel}です。まだご注文いただけません。`),
   purchaseFaq: escape(live ? `セット一覧からご注文いただけます。${config.notice}` : `現在、${config.saleLabel}です。${config.notice}`),
   purchaseTerms: escape(live ? 'すべて買い切りでのご用意です。' : '販売開始時は、すべて買い切りでのご用意です。'),
+  trialRepeatFaq: escape(live ? 'お試し３袋の購入回数に制限は設けていません。' : '販売開始後、お試し３袋の購入回数に制限は設けません。'),
+  deliveryFaq: escape(live ? 'お試し３袋・10袋セット・30袋セットのすべてを、追跡サービス付きでお届けします。' : 'お試し３袋・10袋セット・30袋セットのすべてを、追跡サービス付きでお届けする予定です。'),
   legalSaleState: live ? '' : '現在は販売準備中です。販売開始後、',
   saleConfig: JSON.stringify({saleStatus:config.saleStatus,checkout}).replace(/</g, '\\u003c'),
   lineupCards: config.sets.map((set, index) => `

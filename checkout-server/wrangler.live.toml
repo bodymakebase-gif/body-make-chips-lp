@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 SITE_ORIGIN = "https://body-make-chips.jp"
 STRIPE_MODE = "live"
-SALE_ENABLED = "false"
+SALE_ENABLED = "true"
 # Live one-time JPY prices; verify through API after connecting the restricted key.
 PRICE_TRIAL = "price_1USN6CRzqHvlt8DAi7d6bNwX"
 PRICE_DESK = "price_1USN6lRzqHvlt8DAfkMhNauE"

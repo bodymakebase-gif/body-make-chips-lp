@@ -1,12 +1,16 @@
 {
-  "saleStatus": "prelaunch",
-  "saleLabel": "販売準備中",
-  "priceLabel": "販売予定価格",
+  "saleStatus": "live",
+  "saleLabel": "ご注文受付中",
+  "priceLabel": "販売価格",
   "priceTerms": "税込・送料込み",
   "notice": "初回販売分は500袋。2026年11月5日から順次発送します。",
   "shippingStartDate": "2026-11-05",
   "initialStockBags": 500,
   "bagGrams": 15,
+  "checkout": {
+    "apiOrigin": "https://body-make-chips-checkout.body-make-chips-checkout.workers.dev",
+    "turnstileSiteKey": "0x4AAAAAAFb__Hvd60dyvxNP"
+  },
   "sets": [
     { "id": "trial", "name": "お試し３袋", "quantity": 3, "quantityLabel": "３", "price": 1280, "audience": "まずは味と食感を確かめたい方へ", "tracking": true, "note": "お試しセットの購入回数に制限は設けません。" },
     { "id": "desk", "name": "10袋セット", "quantity": 10, "quantityLabel": "10", "price": 3980, "audience": "デスクや自宅に置いておきたい方へ", "tracking": true },

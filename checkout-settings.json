@@ -1,8 +1,8 @@
 {
-  "enabled": false,
+  "enabled": true,
   "livemode": true,
-  "apiOrigin": "",
-  "turnstileSiteKey": "",
+  "apiOrigin": "https://body-make-chips-checkout.body-make-chips-checkout.workers.dev",
+  "turnstileSiteKey": "0x4AAAAAAFb__Hvd60dyvxNP",
   "sets": [
     {
       "id": "trial",
