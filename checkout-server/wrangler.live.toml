@@ -1,0 +1,30 @@
+name = "body-make-chips-checkout"
+main = "src/worker.mjs"
+compatibility_date = "2026-10-19"
+account_id = "99fab5e9011acdfe4ccdd989e64bdee1"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+SITE_ORIGIN = "https://body-make-chips.jp"
+STRIPE_MODE = "live"
+SALE_ENABLED = "false"
+# Replace with verified live Price IDs before opening sales.
+PRICE_TRIAL = ""
+PRICE_DESK = ""
+PRICE_STOCK = ""
+
+[[durable_objects.bindings]]
+name = "INVENTORY"
+class_name = "Inventory"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Inventory"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Separate Worker and Durable Object namespace: never reuse sandbox inventory.
+# Deploy with: wrangler deploy --config wrangler.live.toml
+# Install live Secrets with the same --config argument; never commit their values.
