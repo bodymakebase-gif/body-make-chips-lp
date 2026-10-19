@@ -2,7 +2,7 @@
 
 ## 現在の状態
 
-2026-10-20時点でSandbox専用Cloudflare Workerへデプロイ済み。実際のStripe SandboxとTurnstileを通した3セットの決済・Webhook・在庫連動が成功。本番LPは販売準備中のまま。公開中の価格・発送予定・返品条件は更新済み。本番Workerは販売停止状態で設置済み。Stripe本番キー・価格・Webhookの設定は未完了。
+2026-10-20時点でSandbox専用Cloudflare Workerへデプロイ済み。実際のStripe SandboxとTurnstileを通した3セットの決済・Webhook・在庫連動が成功。本番LPは販売準備中のまま。公開中の価格・発送予定・返品条件は更新済み。本番Workerは販売停止状態で設置済み。本番の3商品・価格はDashboardで登録済み。Stripe本番キー・Webhookの設定と本番API経由の照合は未完了。
 
 Sandbox: `body-make-chips-checkout-sandbox`。ローカルの実接続テストは `http://127.0.0.1:4175`。設定ファイルの `SALE_ENABLED=true` は **Sandboxだけ**に適用される。秘密値3種類はCloudflare Secretsへ保存済み。デプロイした版は `5589f56d-1e89-41d9-9c19-6905a1b2650c`。
 
@@ -21,6 +21,8 @@ Stripe本番のセキュリティ申告は、本人の確認・送信承認を�
 | 30袋 | 30 | 10,500円 |
 
 共通在庫500袋。日本国内のみ。2026-11-05から順次発送。それ以降の通常注文は入金確認後3営業日以内に発送。購入者都合の返品不可。不良品・誤配送は到着後7日以内の連絡で交換または返金。
+
+本番商品は `prod_VTJj9lFMWXu8vv`（3袋）、`prod_VTJka6pd0nN8Rj`（10袋）、`prod_VTJknEy3oyP8SS`（30袋）。価格は `wrangler.live.toml` に設定済み。検索キーは順に `bmc_trial_3_20261020`、`bmc_desk_10_20261020`、`bmc_stock_30_20261020`。すべてJPY・1回限りで登録している。
 
 ## 接続・公開の順序
 

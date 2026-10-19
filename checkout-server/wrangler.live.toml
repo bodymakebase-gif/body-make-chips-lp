@@ -8,10 +8,10 @@ compatibility_flags = ["nodejs_compat"]
 SITE_ORIGIN = "https://body-make-chips.jp"
 STRIPE_MODE = "live"
 SALE_ENABLED = "false"
-# Replace with verified live Price IDs before opening sales.
-PRICE_TRIAL = ""
-PRICE_DESK = ""
-PRICE_STOCK = ""
+# Live one-time JPY prices; verify through API after connecting the restricted key.
+PRICE_TRIAL = "price_1USN6CRzqHvlt8DAi7d6bNwX"
+PRICE_DESK = "price_1USN6lRzqHvlt8DAfkMhNauE"
+PRICE_STOCK = "price_1USN7ERzqHvlt8DAvklLmK4I"
 
 [[durable_objects.bindings]]
 name = "INVENTORY"
