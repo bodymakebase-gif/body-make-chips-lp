@@ -2,13 +2,15 @@
 
 ## 現在の状態
 
-2026-10-20時点でSandbox専用Cloudflare Workerへデプロイ済み。実際のStripe SandboxとTurnstileを通した3セットの決済・Webhook・在庫連動が成功。本番LPは販売準備中のまま。公開中の価格・発送予定・返品条件は更新済み。本番Workerは販売停止状態で設置済み。本番の3商品・価格はDashboardで登録済み。Stripe本番キー・Webhookの設定と本番API経由の照合は未完了。
+2026-10-20に本番LPで注文受付を開始。3セットとも公開LPから本番Stripe Checkoutへ進めることを確認済み。価格・発送予定・返品条件・国内配送を設定し、在庫500袋を共有する。実際の課金は行っていない。Sandboxでは3セットすべての決済成功・Webhook・在庫連動を確認済み。
 
-Sandbox: `body-make-chips-checkout-sandbox`。ローカルの実接続テストは `http://127.0.0.1:4175`。設定ファイルの `SALE_ENABLED=true` は **Sandboxだけ**に適用される。秘密値3種類はCloudflare Secretsへ保存済み。デプロイした版は `5589f56d-1e89-41d9-9c19-6905a1b2650c`。
+Sandbox: `body-make-chips-checkout-sandbox`。ローカルの実接続テストには `http://127.0.0.1:4175` を使用した。`wrangler.toml` は **Sandbox専用**で、本番設定とは分離している。秘密値3種類はCloudflare Secretsへ保存済み。デプロイした版は `5589f56d-1e89-41d9-9c19-6905a1b2650c`。
 
-本番: `body-make-chips-checkout`。専用の `wrangler.live.toml` を使用する。Turnstileは `body-make-chips.jp` 限定の別ウィジェットを作成し、Secretを本番Workerだけに保存済み。現在の `/availability` は `sales_closed` を返す。本番在庫の500袋は設定値として用意されているが、Stripeキー接続後のDB初期化・実測確認は未実施。
+本番: `body-make-chips-checkout`。専用の `wrangler.live.toml` を使用する。Turnstileは `body-make-chips.jp` 限定。Stripe制限付きキー・Webhook署名キー・Turnstile秘密キーの3種類を本番Cloudflare Secretsへ保存済み。キー値はGitやLPには含まない。本番Workerの版は `cef681a9-f605-47bf-bc68-1b66f8d4907b`。Webhookは `we_1USNCZRzqHvlt8DA4lIvb9kr`。
 
-Stripe本番のセキュリティ申告は、本人の確認・送信承認を得て提出済みで、Stripeの完了表示を確認。本人確認書類の提出依頼が別途残っている。本番接続の承認・決済機能の確認を終えるまでLPの購入受付を有効にしない。
+Stripe本番のセキュリティ申告は、本人の確認・送信承認を得て提出済み。本人確認書類は未提出。Stripe APIで `charges_enabled=true`、`payouts_enabled=false` を確認し、銀行入金が停止中であることを説明したうえで、本人から「先に注文受付を開始する」と明示的な承認を得て公開した。
+
+**残る本人の対応:** [Stripeの本人確認](https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/account/status/tasks/astask_1USM8fRzqHvlt8DAAKTIhlIb)で書類を提出する。銀行口座への売上入金には本人確認の完了が必要。現時点の入金スケジュールは手動。本人確認後、[残高画面](https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/balance/overview)から入金可能額と入金操作を確認する。
 
 既存の独立したSandbox Payment Linksは今回のLPでは使わない。一部旧価格のため共有・本番転用しない。
 
@@ -43,7 +45,14 @@ Stripe本番のセキュリティ申告は、本人の確認・送信承認を�
 
 ## 毎日の発送
 
-Stripe本番Dashboardで支払いが成功した注文を確認し、袋数・送付先・入金を照合して発送する。非同期決済の支払い待ちは発送しない。注文IDを発送管理に記録し、二重発送を防ぐ。発送連絡・追跡番号の通知は手動で行う想定で、メールの自動発送通知は未実装。
+1. [Stripe本番の取引一覧](https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/payments)で「成功」の支払いを開く。確認に使用した3件の期限切れCheckoutは注文ではない。
+2. 商品名・金額・メタデータ `bags`（3/10/30）と、配送先の氏名・住所・電話番号を照合する。支払い待ち・未払いは発送しない。
+3. 11月5日から発送する。それ以降の通常注文は入金確認後3営業日以内。ここでいう入金確認は購入者の決済成功を指し、Stripeから銀行口座への入金とは別。Stripeの支払いIDを発送管理に記録し、二重発送を防ぐ。
+4. 発送日・追跡番号を記録し、購入者へ発送連絡を行う。発送連絡の自動化は未実装。
+
+購入者向けの決済成功時・返金時メールはStripeで有効化し、既定言語を日本語に設定済み。運営者のコミュニケーション設定でも「完了した支払いの領収書 - Email」を有効化済み。実売上のメール到着はまだ検証していないため、メールだけに頼らず取引一覧を確認する。
+
+決済画面の利用規約・特商法は `/legal.html`、プライバシーは `/privacy.html`、問い合わせ先は `/contact.html`。カード明細は `BODY-MAKE CHIPS` / `ボディメイクチップス`。配送先の氏名を利用し、氏名の二重入力は求めない。
 
 決済直後のブラウザー画面だけを発送根拠にしない。Webhookと5分ごとの照合処理で在庫が確定する。受注記録はStripe、在庫DBは注文識別子・袋数・金額・状態のみを保持し、カードや配送先住所を保持しない。
 
@@ -79,4 +88,8 @@ Workerの再デプロイで在庫500を再投入しない。永続DBは初回だ
 - 配送先・氏名・電話番号・メール・販売条件への同意をStripeに記録。国内配送JPのみ。
 - 不許可Origin、無効Turnstile、無署名Webhookはそれぞれ403/403/400で拒否。
 
-実機スマホ・本番決済の確認はSandbox試験とは別に行う。
+本番追加検証:
+
+- 公開LPで3セットとも実際のTurnstileを通過し、本番Checkoutの金額1,280/3,980/10,500円を確認。JPY・1回限り・税込設定。JP配送、氏名・住所・電話番号・メールの入力欄、利用規約への同意を確認。
+- 3袋・10袋・30袋の各手続きで、それぞれ在庫497/490/470袋への一時確保を確認。すべて支払いを行わず期限切れにし、Webhookで在庫500袋へ戻ることを確認済み。3件とも未処理Webhook数0。
+- 実課金・銀行入金・実機スマホでの決済完了は未検証。スマホ幅320/390pxのLP確認画面と実TurnstileはSandboxで検証済み。

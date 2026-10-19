@@ -9,7 +9,7 @@ export function sessionParameters(row, config) {
     payment_intent_data: { metadata: { set_id: row.set_id, bags: String(row.bags), shipping_start: SHIPPING_START } },
     shipping_address_collection: { allowed_countries: ['JP'] },
     phone_number_collection: { enabled: true },
-    name_collection: { individual: { enabled: true } },
+    // Shipping already requires the recipient name; avoid asking for it twice.
     locale: 'ja',
     expires_at: row.expires,
     success_url: `${config.siteOrigin}/order-complete.html?session_id={CHECKOUT_SESSION_ID}`,
