@@ -6,7 +6,7 @@
 
 Sandbox: `body-make-chips-checkout-sandbox`。ローカルの実接続テストには `http://127.0.0.1:4175` を使用した。`wrangler.toml` は **Sandbox専用**で、本番設定とは分離している。秘密値3種類はCloudflare Secretsへ保存済み。デプロイした版は `5589f56d-1e89-41d9-9c19-6905a1b2650c`。
 
-本番: `body-make-chips-checkout`。専用の `wrangler.live.toml` を使用する。Turnstileは `body-make-chips.jp` 限定。Stripe制限付きキー・Webhook署名キー・Turnstile秘密キーの3種類を本番Cloudflare Secretsへ保存済み。キー値はGitやLPには含まない。本番Workerの版は `cef681a9-f605-47bf-bc68-1b66f8d4907b`。Webhookは `we_1USNCZRzqHvlt8DA4lIvb9kr`。
+本番: `body-make-chips-checkout`。専用の `wrangler.live.toml` を使用する。Turnstileは `body-make-chips.jp` 限定。Stripe制限付きキー・Webhook署名キー・Turnstile秘密キーに加え、2026-10-23に在庫管理キーのハッシュを本番Cloudflare Secretsへ保存済み。キー値はGitやLPには含まない。本番Workerの版は `4f18a5ca-29aa-493d-bb9a-c32bcc6aa844`。Webhookは `we_1USNCZRzqHvlt8DA4lIvb9kr`。
 
 Stripe本番のセキュリティ申告は、本人の確認・送信承認を得て提出済み。本人確認書類は未提出。Stripe APIで `charges_enabled=true`、`payouts_enabled=false` を確認し、銀行入金が停止中であることを説明したうえで、本人から「先に注文受付を開始する」と明示的な承認を得て公開した。
 
@@ -83,6 +83,8 @@ Stripe本番のセキュリティ申告は、本人の確認・送信承認を�
 認証: 256bitのランダム管理キーのSHA-256のみをCloudflare Secret `INVENTORY_ADMIN_KEY_HASH` に保存。サーバーにはキー原文を保存しない。セッションはランダム256bitでDBにはハッシュのみ保存。Cookieは `Secure` / `HttpOnly` / `SameSite=Strict`。同一Originと専用ヘッダーを要求し、認証試行を制限する。管理キーのハッシュを更新すると既存セッションは無効になる。管理画面は販売停止中でも利用可能。
 
 検証: 自動テスト23件成功。Sandboxでブラウザから試供品10袋の減算・取消、APIで重複送信・公開在庫連動・不正Origin/未認証/過剰減算の拒否・ログアウト失効を確認し、テスト在庫は457袋へ復元。本番在庫を用いた増減テストは行わない。320/390px相当のブラウザ幅で入力・確認画面と横溢れなしを確認。
+
+本番反映後の確認（2026-10-23 00:16 JST）: 管理画面へのログイン成功。販売可能460袋・購入手続き中0袋・販売済み40袋・手動調整0袋。導入前後の公開在庫照会は460袋で一致。未認証の管理APIは401、画面のコンソールエラーなし。
 
 ## 停止・復旧
 
