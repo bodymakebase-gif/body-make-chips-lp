@@ -14,7 +14,13 @@ export class InventoryStore {
         expires INTEGER NOT NULL, state TEXT NOT NULL, session_id TEXT UNIQUE,
         session_url TEXT, updated INTEGER NOT NULL);
       CREATE INDEX IF NOT EXISTS reservations_state ON reservations(state);
-      CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, processed INTEGER NOT NULL);`);
+      CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, processed INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS adjustments (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT NOT NULL UNIQUE,
+        kind TEXT NOT NULL, bags INTEGER NOT NULL, delta INTEGER NOT NULL,
+        note TEXT NOT NULL, actor TEXT NOT NULL, created INTEGER NOT NULL,
+        before_available INTEGER NOT NULL, after_available INTEGER NOT NULL,
+        reversal_of TEXT UNIQUE);`);
     this.sql.exec('INSERT OR IGNORE INTO inventory(id,environment,total) VALUES(1,?,?)', environment, initialStock);
     if (this.sql.exec('SELECT environment FROM inventory WHERE id=1').one().environment !== environment) {
       throw new Error('Inventory environment mismatch; use separate namespaces for test and live.');
@@ -99,4 +105,57 @@ export class InventoryStore {
   touch(id, now) { this.sql.exec('UPDATE reservations SET updated=? WHERE request_id=?', now, id); }
   pending() { return this.sql.exec("SELECT * FROM reservations WHERE state IN ('creating','open','pending') ORDER BY updated LIMIT 40").toArray(); }
   status() { const available = Math.max(0, this.available()); return Object.fromEntries(Object.entries(CATALOG).map(([key, item]) => [key, available >= item.bags])); }
+
+  summary() {
+    const total = this.sql.exec('SELECT total FROM inventory WHERE id=1').one().total;
+    const grouped = this.sql.exec('SELECT state,SUM(bags) AS bags FROM reservations GROUP BY state').toArray();
+    const counts = Object.fromEntries(grouped.map(row => [row.state, row.bags]));
+    const held = (counts.creating || 0) + (counts.open || 0) + (counts.pending || 0);
+    const paid = counts.paid || 0, review = counts.review || 0;
+    const adjustments = this.sql.exec('SELECT COALESCE(SUM(delta),0) AS net FROM adjustments').one().net;
+    return { total, initial: total - adjustments, adjustments, held, paid, review,
+      available: total - held - paid - review };
+  }
+
+  history(before = Number.MAX_SAFE_INTEGER, limit = 25) {
+    return this.sql.exec(`SELECT a.*,r.request_id AS reversed_by FROM adjustments a
+      LEFT JOIN adjustments r ON r.reversal_of=a.request_id WHERE a.seq<? ORDER BY a.seq DESC LIMIT ?`, before, limit).toArray();
+  }
+
+  adjust(input, actor, now) {
+    const directions = { sample: -1, damage: -1, receipt: 1, return: 1 };
+    const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+    if (!input || !uuid.test(input.requestId || '')) throw new CheckoutError('invalid_request_id');
+    const note = typeof input.note === 'string' ? input.note.trim() : '';
+    if (note.length > 200 || /[\x00-\x08\x0b-\x1f\x7f]/.test(note)) throw new CheckoutError('invalid_note');
+    if (input.kind !== 'reversal' && !Object.hasOwn(directions, input.kind)) throw new CheckoutError('invalid_adjustment');
+    if (input.kind !== 'reversal' && (!Number.isSafeInteger(input.bags) || input.bags < 1 || input.bags > 100000)) throw new CheckoutError('invalid_quantity');
+    if (input.kind === 'reversal' && !uuid.test(input.reversalOf || '')) throw new CheckoutError('invalid_adjustment');
+    return this.storage.transactionSync(() => {
+      const existing = this.sql.exec('SELECT * FROM adjustments WHERE request_id=?', input.requestId).toArray()[0];
+      if (existing) {
+        if (existing.kind !== input.kind || existing.note !== note ||
+            (input.kind === 'reversal' ? existing.reversal_of !== input.reversalOf : existing.bags !== input.bags)) {
+          throw new CheckoutError('request_conflict', 409);
+        }
+        return { adjustment: existing, duplicate: true };
+      }
+      let bags = input.bags, delta = directions[input.kind] * bags;
+      if (input.kind === 'reversal') {
+        const original = this.sql.exec('SELECT * FROM adjustments WHERE request_id=?', input.reversalOf).toArray()[0];
+        if (!original || original.kind === 'reversal') throw new CheckoutError('invalid_reversal');
+        if (this.sql.exec('SELECT 1 FROM adjustments WHERE reversal_of=?', input.reversalOf).toArray().length) throw new CheckoutError('already_reversed', 409);
+        bags = original.bags; delta = -original.delta;
+      }
+      const before = this.available();
+      if (before < 0 || this.summary().review > 0) throw new CheckoutError('inventory_needs_review', 409);
+      if (before + delta < 0) throw new CheckoutError('insufficient_stock', 409);
+      const total = this.sql.exec('SELECT total FROM inventory WHERE id=1').one().total;
+      if (total + delta > 10000000) throw new CheckoutError('quantity_limit');
+      this.sql.exec('UPDATE inventory SET total=total+? WHERE id=1', delta);
+      this.sql.exec(`INSERT INTO adjustments(request_id,kind,bags,delta,note,actor,created,before_available,after_available,reversal_of)
+        VALUES(?,?,?,?,?,?,?,?,?,?)`, input.requestId, input.kind, bags, delta, note, actor, now, before, before + delta, input.kind === 'reversal' ? input.reversalOf : null);
+      return { adjustment: this.sql.exec('SELECT * FROM adjustments WHERE request_id=?', input.requestId).one(), duplicate: false };
+    });
+  }
 }

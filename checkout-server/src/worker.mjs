@@ -3,6 +3,8 @@ import { DurableObject } from 'cloudflare:workers';
 import { InventoryStore } from './inventory.mjs';
 import { CheckoutService } from './checkout.mjs';
 import { CheckoutError } from './catalog.mjs';
+import { AdminAuthStore } from './admin-auth.mjs';
+import { adminAsset, adminApi, adminJson, validateAdminRequest } from './admin.mjs';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 const configFor = env => ({
@@ -59,6 +61,14 @@ export default {
     const origin = request.headers.get('origin');
     const allowed = origin === env.SITE_ORIGIN;
     try {
+      if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
+        validateAdminRequest(request, env.STRIPE_MODE);
+        const asset = request.method === 'GET' && adminAsset(url.pathname, env.STRIPE_MODE);
+        if (asset) return asset;
+        if (!url.pathname.startsWith('/admin/api/')) return adminJson({ error: 'not_found' }, 404);
+        const stub = env.INVENTORY.getByName('body-make-chips-first-batch');
+        return stub.fetch(request);
+      }
       if (url.pathname === '/webhook' && request.method === 'POST') {
         if (!env.STRIPE_WEBHOOK_SECRET) return json({ error: 'not_ready' }, 503);
         if (Number(request.headers.get('content-length')) > 1048576) return json({ error: 'too_large' }, 413);
@@ -106,6 +116,9 @@ export default {
       }
       return cors(json({ error: 'not_found' }, 404), origin);
     } catch (error) {
+      if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
+        return adminJson({ error: error instanceof CheckoutError ? error.code : 'temporarily_unavailable' }, error instanceof CheckoutError ? error.status : 503);
+      }
       const response = json({ error: error instanceof CheckoutError ? error.code : 'temporarily_unavailable' }, error instanceof CheckoutError ? error.status : 503);
       // Never log Stripe responses, API keys, request bodies, addresses or payment data.
       if (!(error instanceof CheckoutError)) console.error('checkout_request_failed');
@@ -119,12 +132,16 @@ export class Inventory extends DurableObject {
     super(ctx, env);
     this.env = env;
     this.store = new InventoryStore(ctx.storage, env.STRIPE_MODE);
+    this.adminAuth = new AdminAuthStore(ctx.storage);
     this.stripe = stripeClient(env);
     this.service = new CheckoutService(this.store, this.stripe, configFor(env));
   }
   async fetch(request) {
     const url = new URL(request.url);
     try {
+      if (url.pathname.startsWith('/admin/api/')) {
+        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson);
+      }
       if (url.pathname === '/availability') return json({ available: this.store.status(), remainingBags: Math.max(0, this.store.available()), livemode: this.env.STRIPE_MODE === 'live' });
       if (url.pathname === '/order-status') {
         const session = await this.stripe.checkout.sessions.retrieve(url.searchParams.get('session_id'));
@@ -149,6 +166,9 @@ export class Inventory extends DurableObject {
       }
       return json({ error: 'not_found' }, 404);
     } catch (error) {
+      if (url.pathname.startsWith('/admin/api/')) {
+        return adminJson({ error: error instanceof CheckoutError ? error.code : 'temporarily_unavailable' }, error instanceof CheckoutError ? error.status : 503);
+      }
       if (!(error instanceof CheckoutError)) console.error('inventory_operation_failed');
       return json({ error: error instanceof CheckoutError ? error.code : 'temporarily_unavailable' }, error instanceof CheckoutError ? error.status : 503);
     }

@@ -4,6 +4,11 @@ compatibility_date = "2026-10-19"
 account_id = "99fab5e9011acdfe4ccdd989e64bdee1"
 compatibility_flags = ["nodejs_compat"]
 
+[[rules]]
+type = "Text"
+globs = ["**/admin/*.html", "**/admin/*.css", "**/admin/admin.js"]
+fallthrough = true
+
 [vars]
 SITE_ORIGIN = "https://body-make-chips.jp"
 STRIPE_MODE = "live"

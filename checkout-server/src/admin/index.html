@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
+<body data-environment="__ENVIRONMENT__">
+<header class="topbar"><a class="brand" href="/admin/">BODY-MAKE CHIPS<span>STOCK ROOM</span></a><span id="environment" class="badge">在庫管理</span><button id="logout" class="quiet" hidden>ログアウト</button></header>
+<main>
+<section id="login-panel" class="login panel">
+  <p class="eyebrow">FOR THE MAKER</p><h1>在庫を、<br>手元で管理。</h1><p class="intro">試供品の取り分けも、追加の納品も。<br>LPとつながる、あなたの在庫管理室です。</p>
+  <form id="login-form"><label for="admin-key">管理キー</label><input id="admin-key" type="password" autocomplete="current-password" required spellcheck="false" autocapitalize="none" placeholder="専用の管理キーを貼り付け"><button class="primary" type="submit" id="login-button">管理画面を開く <span aria-hidden="true">→</span></button></form>
+  <p id="login-message" class="message" role="status"></p><p class="small">初回の管理キーは、お渡しした「在庫管理_ログイン情報.txt」にあります。ログインは8時間有効です。</p>
+</section>
+<div id="dashboard" hidden>
+  <div class="page-heading"><div><p class="eyebrow">YOUR INVENTORY</p><h1>在庫管理</h1><p>取り分けたら、ここに記録。</p></div><button id="refresh" class="secondary">最新の在庫に更新 <span aria-hidden="true">↻</span></button></div>
+  <p id="status" class="message" role="status" aria-live="polite"></p>
+  <section class="stock-grid" aria-label="現在の在庫">
+    <article class="stock available"><div class="stock-label">販売可能</div><p class="number"><strong id="available">—</strong><span>袋</span></p><p>いまLPで販売できる数量</p><div class="sync"><span aria-hidden="true">●</span> LPと自動連動</div></article>
+    <article class="stock"><div class="stock-label">購入手続き中</div><p class="number"><strong id="held">—</strong><span>袋</span></p><p>決済のため一時的に確保。<br>期限切れを確認すると戻ります。</p></article>
+    <article class="stock"><div class="stock-label">販売済み</div><p class="number"><strong id="paid">—</strong><span>袋</span></p><p>決済成功を確認した累計。<br>発送時の減算は不要です。</p></article>
+  </section>
+  <div class="stock-context"><p id="calculation">在庫を読み込んでいます。</p><p id="updated">—</p></div>
+  <p class="small physical-note">「販売可能」は手元の実物の総数とは異なります。販売済みには未発送の商品も含まれます。</p>
+  <p id="review-warning" class="warning" hidden></p>
+  <div class="workspace">
+    <section class="panel adjust-panel" aria-labelledby="adjust-title"><p class="eyebrow">STOCK IN / OUT</p><h2 id="adjust-title">在庫を変更する</h2><p class="muted">用途を選び、袋数を入力してください。</p>
+      <form id="adjust-form"><fieldset id="adjust-fields" disabled><legend class="sr-only">在庫の増減</legend>
+      <label for="kind">変更する理由</label><select id="kind" name="kind"><option value="sample">試供品として取り分ける −</option><option value="damage">破損・廃棄で減らす −</option><option value="receipt">追加納品で増やす ＋</option><option value="return">返品分を戻す（再販売できるもの）＋</option></select>
+      <label for="bags">袋数</label><div class="quantity"><input id="bags" name="bags" type="number" inputmode="numeric" min="1" max="100000" step="1" required placeholder="例：10"><span>袋</span></div>
+      <p id="quantity-hint" class="small">セット数ではなく、袋数を入力します。</p>
+      <label for="note">メモ <span class="optional">任意</span></label><textarea id="note" name="note" rows="2" maxlength="200" placeholder="例：イベント用の試供品"></textarea>
+      <p id="preview" class="change-preview">袋数を入れると、変更後の在庫が表示されます。</p><button class="primary" id="review-change" type="submit">内容を確認する <span aria-hidden="true">→</span></button>
+      </fieldset></form>
+    </section>
+    <aside class="side-notes"><section class="panel"><p class="eyebrow">A QUICK GUIDE</p><h2>試供品を取りたいとき</h2><ol><li>「試供品として取り分ける」を選ぶ</li><li>取り分ける袋数を入力</li><li>内容を確認して登録</li></ol><p>登録した分だけ販売可能数が減り、LPにも反映されます。購入や決済の操作は不要です。</p><p class="small">入力を間違えたら、変更履歴から取り消せます。記録は残ります。</p></section>
+    <a class="external" href="https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/payments" target="_blank" rel="noopener noreferrer">注文・配送先をStripeで確認 <span aria-hidden="true">↗</span></a><a class="external" href="https://body-make-chips.jp/#lineup" target="_blank" rel="noopener noreferrer">公開LPを確認 <span aria-hidden="true">↗</span></a></aside>
+  </div>
+  <section class="panel history-panel" aria-labelledby="history-title"><div class="section-heading"><div><p class="eyebrow">STOCK HISTORY</p><h2 id="history-title">変更履歴</h2></div><span class="small">日時は日本時間</span></div><p class="muted">手動で変更した記録です。購入による減算は、上の販売済み数とStripeで確認できます。</p><div id="history" class="history-list"></div><button id="load-more" class="secondary" hidden>以前の記録を表示</button></section>
+  <footer>BODY-MAKE CHIPS / 管理者専用<br><span>在庫は30秒ごとに更新します。</span></footer>
+</div>
+</main>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><button id="dialog-close" class="close" aria-label="閉じる">×</button></form><p class="eyebrow">CHECK BEFORE SAVING</p><h2 id="confirm-title">この内容で登録しますか？</h2><p id="confirm-kind" class="confirm-kind"></p><p id="confirm-quantity" class="confirm-quantity"></p><p id="confirm-note" class="muted"></p><p id="confirm-impact" class="change-preview"></p><p class="small">登録時の最新在庫に反映します。購入手続き中・販売済みの数量は変更しません。</p><p id="confirm-error" class="message" role="alert"></p><div class="dialog-actions"><button id="cancel-change" class="secondary">戻る</button><button id="commit-change" class="primary">登録する</button></div></dialog>
+<noscript>この管理画面にはJavaScriptが必要です。ブラウザの設定を確認してください。</noscript>
+</body></html>

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { InventoryStore } from '../src/inventory.mjs';
 import { CheckoutService } from '../src/checkout.mjs';
 import { CATALOG } from '../src/catalog.mjs';
+import { AdminAuthStore, digest, cookieToken, sessionCookie } from '../src/admin-auth.mjs';
 
 function setup(total = 500) {
   const db = new DatabaseSync(':memory:');
@@ -148,4 +149,85 @@ test('invalid or altered client pricing cannot change the server catalog',async(
   const {service,store}=setup(); const input={...request('trial'),amount:1,bags:1}; await service.create(input);
   assert.equal(store.get(input.requestId).amount,1280); assert.equal(store.get(input.requestId).bags,3);
   await assert.rejects(service.create(request('__proto__')),e=>e.code==='invalid_set');
+});
+
+const adjustment = (bags = 10, kind = 'sample') => ({ requestId: randomUUID(), kind, bags, note: 'テスト用' });
+
+test('manual adjustments preserve paid and held reservations and survive reconstruction', async () => {
+  const { service, store, ids, storage } = setup();
+  const paid = request('desk'), held = request('stock'); await service.create(paid); await service.create(held);
+  const session = ids.get(store.get(paid.requestId).session_id); session.status = 'complete'; session.payment_status = 'paid';
+  store.applySession(session, 1000000);
+  const input = adjustment(); store.adjust(input, '管理者', 1000001);
+  assert.deepEqual(store.summary(), { initial: 500, total: 490, adjustments: -10, held: 30, paid: 10, review: 0, available: 450 });
+  const reopened = new InventoryStore(storage, 'test'); assert.equal(reopened.available(), 450);
+  assert.equal(reopened.history()[0].note, 'テスト用'); assert.equal(reopened.history()[0].after_available, 450);
+  store.adjust(adjustment(7, 'receipt'), '管理者', 1000002);
+  assert.equal(store.available(), 457); assert.equal(store.get(paid.requestId).state, 'paid');
+});
+
+test('manual removal and checkout competition never consume reserved stock', async () => {
+  const { service, store } = setup(40); await service.create(request('stock'));
+  assert.throws(() => store.adjust(adjustment(11), '管理者', 1), e => e.code === 'insufficient_stock');
+  assert.equal(store.available(), 10); assert.equal(store.history().length, 0);
+  store.adjust(adjustment(10), '管理者', 2); assert.equal(store.available(), 0);
+  await assert.rejects(service.create(request('trial')), e => e.code === 'out_of_stock');
+  assert.deepEqual(store.status(), { trial: false, desk: false, stock: false });
+});
+
+test('retried manual adjustments apply once even after inventory has changed', () => {
+  const { store } = setup(); const input = adjustment();
+  store.adjust(input, '管理者', 1); store.adjust(adjustment(3), '管理者', 2);
+  assert.equal(store.adjust(input, '管理者', 3).duplicate, true); assert.equal(store.available(), 487);
+  assert.throws(() => store.adjust({ ...input, bags: 11 }, '管理者', 4), e => e.code === 'request_conflict');
+  assert.equal(store.history().length, 2);
+});
+
+test('undo is an audited inverse entry, cannot be repeated or steal allocated stock', async () => {
+  const { store, service } = setup(0); const receipt = adjustment(10, 'receipt'); store.adjust(receipt, '管理者', 1);
+  await service.create(request('desk'));
+  const undo = { requestId: randomUUID(), kind: 'reversal', reversalOf: receipt.requestId, note: '誤登録' };
+  assert.throws(() => store.adjust(undo, '管理者', 2), e => e.code === 'insufficient_stock');
+  const sample = adjustment(3); store.adjust(adjustment(3, 'receipt'), '管理者', 3); store.adjust(sample, '管理者', 4);
+  const cancelSample = { ...undo, requestId: randomUUID(), reversalOf: sample.requestId };
+  store.adjust(cancelSample, '管理者', 5); assert.equal(store.available(), 3);
+  assert.equal(store.adjust(cancelSample, '管理者', 6).duplicate, true);
+  assert.throws(() => store.adjust({ ...cancelSample, requestId: randomUUID() }, '管理者', 7), e => e.code === 'already_reversed');
+  assert.equal(store.history().find(r => r.request_id === sample.requestId).reversed_by, cancelSample.requestId);
+});
+
+test('invalid quantities, unrecognized reasons and review incidents cannot alter inventory', () => {
+  const { store } = setup();
+  for (const bags of [-10, 0, 1.5, '10', 100001, Infinity]) assert.throws(() => store.adjust(adjustment(bags), '管理者', 1));
+  assert.throws(() => store.adjust(adjustment(1, '__proto__'), '管理者', 1));
+  assert.equal(store.available(), 500); assert.equal(store.history().length, 0);
+  const reserved = request('trial'); store.reserve(reserved, 'trial', 0);
+  store.sql.exec("UPDATE reservations SET state='review' WHERE request_id=?", reserved.requestId);
+  assert.throws(() => store.adjust(adjustment(1), '管理者', 1), e => e.code === 'inventory_needs_review');
+});
+
+test('history pagination is stable for same-second entries', () => {
+  const { store } = setup(); for (let i = 0; i < 30; i++) store.adjust(adjustment(1), '管理者', 1000);
+  const first = store.history(); const second = store.history(first.at(-1).seq);
+  assert.equal(first.length, 25); assert.equal(second.length, 5);
+  assert.equal(new Set([...first, ...second].map(r => r.request_id)).size, 30);
+});
+
+test('admin sessions require the correct key and expire, revoke on logout or key rotation', async () => {
+  const { storage } = setup(); const auth = new AdminAuthStore(storage); const hash = await digest('random-test-key');
+  await assert.rejects(auth.login('wrong', hash, 'ip-a', 1), e => e.code === 'invalid_admin_key');
+  const token = await auth.login('random-test-key', hash, 'ip-a', 2);
+  assert.equal((await auth.authenticate(token, hash, 3)).actor, '管理者');
+  assert.equal(cookieToken(new Request('https://example.com', { headers: { cookie: sessionCookie(token) } })), token);
+  await assert.rejects(auth.authenticate(token, hash, 28802), e => e.code === 'authentication_required');
+  await assert.rejects(auth.authenticate(token, await digest('rotated'), 3), e => e.code === 'authentication_required');
+  await auth.logout(token); await assert.rejects(auth.authenticate(token, hash, 3), e => e.code === 'authentication_required');
+});
+
+test('admin brute force attempts are throttled and missing configuration fails closed', async () => {
+  const { storage } = setup(); const auth = new AdminAuthStore(storage), hash = await digest('test-key');
+  for (let i = 0; i < 8; i++) await assert.rejects(auth.login('wrong', hash, 'ip-a', 1), e => e.code === 'invalid_admin_key');
+  await assert.rejects(auth.login('test-key', hash, 'ip-a', 2), e => e.code === 'too_many_attempts');
+  assert.ok(await auth.login('test-key', hash, 'ip-a', 902));
+  await assert.rejects(auth.login('test-key', '', 'ip-a', 903), e => e.code === 'admin_not_configured');
 });
