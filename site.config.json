@@ -3,7 +3,7 @@
   "saleLabel": "ご注文受付中",
   "priceLabel": "販売価格",
   "priceTerms": "税込・送料込み",
-  "notice": "初回販売分は500袋。2026年11月5日から順次発送します。",
+  "notice": "2026年11月5日から順次発送します。",
   "shippingStartDate": "2026-11-05",
   "initialStockBags": 500,
   "bagGrams": 15,
