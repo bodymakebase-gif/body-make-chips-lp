@@ -23,8 +23,8 @@ export function sessionParameters(row, config) {
 }
 
 export class CheckoutService {
-  constructor(store, stripe, config, clock = () => Math.floor(Date.now() / 1000)) {
-    this.store = store; this.stripe = stripe; this.config = config; this.clock = clock;
+  constructor(store, stripe, config, clock = () => Math.floor(Date.now() / 1000), analytics = null) {
+    this.store = store; this.stripe = stripe; this.config = config; this.clock = clock; this.analytics = analytics;
   }
   async create(input) {
     const item = validateRequest(input);
@@ -37,6 +37,7 @@ export class CheckoutService {
           price.unit_amount !== item.amount || price.livemode !== this.config.livemode) throw new CheckoutError('not_ready', 503);
     }
     const row = this.store.reserve(input, priceId, this.clock());
+    try { this.analytics?.remember(row, input.analytics, this.clock()); } catch { /* Analytics cannot prevent checkout. */ }
     if (['paid', 'pending'].includes(row.state)) return { status: 'complete', sessionId: row.session_id };
     if (['expired', 'failed', 'review'].includes(row.state)) throw new CheckoutError('checkout_unavailable', 409);
     if (row.session_id) {

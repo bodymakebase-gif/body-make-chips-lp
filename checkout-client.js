@@ -1,3 +1,4 @@
+import { getAnalyticsContext, trackSetSelection, trackCheckoutStart } from './analytics.js?v=20261023';
 // Public configuration contains no Stripe credentials. Price and stock are enforced by the server.
 const configNode = document.querySelector('#sale-config');
 let config;
@@ -81,6 +82,7 @@ if (dialog && config?.enabled) {
   for (const button of buyButtons) button.addEventListener('click', async () => {
     selected = config.sets.find(set => set.id === button.dataset.buySet);
     if (!selected || !availability[selected.id]) return;
+    trackSetSelection(selected).catch(() => {});
     const thisGeneration = ++generation;
     dialog.querySelector('[data-checkout-name]').textContent = selected.name;
     dialog.querySelector('[data-checkout-quantity]').textContent = `15g × ${selected.quantity}袋`;
@@ -105,14 +107,17 @@ if (dialog && config?.enabled) {
     dialog.querySelector('[data-checkout-close]').disabled = true;
     message.textContent = 'お支払い画面を開いています…';
     try {
+      const requestId = requestIdFor(selected.id);
+      const analytics = await getAnalyticsContext().catch(() => null);
       const result = await api('/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setId: selected.id, requestId: requestIdFor(selected.id), turnstileToken: token }) });
+        body: JSON.stringify({ setId: selected.id, requestId, turnstileToken: token, ...(analytics ? { analytics } : {}) }) });
       if (result.status === 'complete' && /^cs_[A-Za-z0-9_]+$/.test(result.sessionId || '')) {
         location.assign(`./order-complete.html?session_id=${encodeURIComponent(result.sessionId)}`);
         return;
       }
       const destination = new URL(result.url);
       if (destination.origin !== 'https://checkout.stripe.com') throw new Error('invalid_destination');
+      await trackCheckoutStart(selected, requestId).catch(() => {});
       location.assign(destination.href);
     } catch (error) {
       if (error.code === 'checkout_unavailable') forget(selected.id);

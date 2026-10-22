@@ -385,3 +385,7 @@ body.is-sticky-cta-hidden .sticky-cta { opacity: 0; visibility: hidden; transfor
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; }
   .reveal { opacity: 1; transform: none; }
 }
+/* Privacy controls share the LP palette without affecting the sales layout. */
+.legal-block [data-analytics-choice] { border: 1px solid #687858; border-radius: 6px; padding: 10px 14px; margin: 4px 8px 4px 0; background: #f5f7ed; color: #26341e; font: inherit; cursor: pointer; }
+.legal-block [data-analytics-choice]:hover { background: #e8efd9; }
+.legal-block [data-analytics-choice]:focus-visible { outline: 3px solid #94b44a; outline-offset: 3px; }

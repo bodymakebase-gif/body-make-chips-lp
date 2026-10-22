@@ -26,7 +26,7 @@ export function validateAdminRequest(request, mode) {
   if (!['GET', 'POST'].includes(request.method)) throw new CheckoutError('method_not_allowed', 405);
 }
 
-export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000)) {
+export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null) {
   const url = new URL(request.url);
   const token = cookieToken(request);
   if (url.pathname === '/admin/api/login' && request.method === 'POST') {
@@ -39,6 +39,9 @@ export async function adminApi(request, store, auth, keyHash, readJson, now = Ma
     return adminJson({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
   }
   const actor = await auth.authenticate(token, keyHash, now);
+  if (url.pathname === '/admin/api/analytics' && request.method === 'GET') {
+    return adminJson(analytics?.status() || { enabled: false });
+  }
   if (url.pathname === '/admin/api/summary' && request.method === 'GET') {
     return adminJson({ ...store.summary(), actor: actor.actor, updatedAt: now });
   }

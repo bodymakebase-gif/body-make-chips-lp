@@ -7,6 +7,7 @@
   "shippingStartDate": "2026-11-05",
   "initialStockBags": 500,
   "bagGrams": 15,
+  "analytics": { "measurementId": "G-Q7E7FLHEBP" },
   "checkout": {
     "apiOrigin": "https://body-make-chips-checkout.body-make-chips-checkout.workers.dev",
     "turnstileSiteKey": "0x4AAAAAAFb__Hvd60dyvxNP"

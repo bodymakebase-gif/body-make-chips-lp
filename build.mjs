@@ -49,4 +49,7 @@ const render = template => template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
 await writeFile(new URL('index.html', root), render(template));
 await writeFile(new URL('legal.html', root), render(await readFile(new URL('legal.template.html', root), 'utf8')));
 await writeFile(new URL('checkout-settings.json', root), JSON.stringify(checkout, null, 2) + '\n');
+if (config.analytics && !/^G-[A-Z0-9]+$/.test(config.analytics.measurementId)) throw new Error('Invalid GA4 measurement ID');
+await writeFile(new URL('analytics-settings.json', root), JSON.stringify({ measurementId: config.analytics?.measurementId || '',
+  hosts: ['body-make-chips.jp'], apiOrigin: checkout.apiOrigin, sets: checkout.sets }, null, 2) + '\n');
 console.log(`Built index.html: ${config.saleStatus}, ${config.sets.length} sets, checkout ${live ? 'enabled' : 'disabled'}.`);

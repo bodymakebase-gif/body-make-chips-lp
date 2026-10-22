@@ -12,6 +12,7 @@
     <link rel="icon" href="./favicon-green-64.png?v=20260728-2" type="image/png" sizes="64x64" />
     <link rel="apple-touch-icon" href="./apple-touch-icon-green.png?v=20260728-2" sizes="180x180" />
     <link rel="stylesheet" href="./styles.css?v=20261020-checkout" />
+    <script type="module" src="./analytics.js?v=20261023"></script>
   </head>
   <body class="subpage">
     <main class="page-shell">
@@ -35,6 +36,14 @@
           <h2>第三者提供</h2>
           <p>法令に基づく場合を除き、ご本人の同意なく個人情報を第三者へ提供しません。業務の遂行に必要な範囲で、決済処理をStripe、フォームの運用をGoogleが提供するサービス、購入手続き・在庫管理と不正アクセス対策をCloudflareが提供するサービスに委託し、配送に必要な氏名・住所・電話番号等を配送事業者へ提供します。</p>
           <p>購入手続きではCloudflare Turnstileを利用し、不正アクセスの判定に必要なIPアドレスやブラウザー情報等がCloudflareに送信されます。</p>
+        </div>
+        <div class="legal-block" id="analytics">
+          <h2>アクセス解析について</h2>
+          <p>当サイトでは、閲覧状況と購入までの流れを把握してサイトを改善するため、Google アナリティクス4（GA4）を利用します。Cookie等によるブラウザー識別子、閲覧ページ、流入元、端末情報、商品の選択・決済開始・購入完了、商品と購入金額などの情報をGoogleへ送信します。決済が確認された注文は、決済サーバーからも購入完了情報を送信します。</p>
+          <p>アクセス解析には氏名、メールアドレス、配送先住所、電話番号、カード情報を送信しません。広告向けのパーソナライズとGoogleシグナルは利用しません。Googleによる情報の取り扱いについては、<a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">Googleのサービスを使用するサイトやアプリから収集した情報のGoogleによる使用</a>をご覧ください。</p>
+          <p>下の設定で、このブラウザーからの今後のアクセス解析を許可・停止できます。停止しても商品の購入はできます。別の端末やブラウザーでは、それぞれ設定してください。</p>
+          <p><button type="button" data-analytics-choice="denied">アクセス解析を停止する</button> <button type="button" data-analytics-choice="granted">アクセス解析を許可する</button></p>
+          <p data-analytics-choice-status role="status"></p>
         </div>
         <div class="legal-block">
           <h2>安全管理</h2>

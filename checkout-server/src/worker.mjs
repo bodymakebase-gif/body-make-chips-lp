@@ -5,6 +5,7 @@ import { CheckoutService } from './checkout.mjs';
 import { CheckoutError } from './catalog.mjs';
 import { AdminAuthStore } from './admin-auth.mjs';
 import { adminAsset, adminApi, adminJson, validateAdminRequest } from './admin.mjs';
+import { PurchaseAnalytics, analyticsDefaultAllowed } from './analytics.mjs';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 const configFor = env => ({
@@ -88,6 +89,9 @@ export default {
         'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '600', 'Vary': 'Origin',
       } });
       // Existing customers must still be able to check a payment when new sales are paused.
+      if (url.pathname === '/measurement-policy' && request.method === 'GET') {
+        return cors(json({ defaultAllowed: analyticsDefaultAllowed(request.cf?.country) }), origin);
+      }
       if (url.pathname !== '/order-status' && env.SALE_ENABLED !== 'true') return cors(json({ error: 'sales_closed' }, 503), origin);
       if (!validSiteOrigin(env) || !env.TURNSTILE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) {
         return cors(json({ error: 'not_ready' }, 503), origin);
@@ -110,7 +114,7 @@ export default {
         const check = await verification.json();
         if (!check.success || check.hostname !== new URL(env.SITE_ORIGIN).hostname || check.action !== 'checkout') throw new CheckoutError('verification_failed', 403);
         const response = await stub.fetch('https://inventory.internal/checkout', {
-          method: 'POST', body: JSON.stringify({ setId: input.setId, requestId: input.requestId }),
+          method: 'POST', body: JSON.stringify({ setId: input.setId, requestId: input.requestId, analytics: input.analytics }),
         });
         return cors(response, origin);
       }
@@ -134,13 +138,14 @@ export class Inventory extends DurableObject {
     this.store = new InventoryStore(ctx.storage, env.STRIPE_MODE);
     this.adminAuth = new AdminAuthStore(ctx.storage);
     this.stripe = stripeClient(env);
-    this.service = new CheckoutService(this.store, this.stripe, configFor(env));
+    this.analytics = new PurchaseAnalytics(ctx.storage, env);
+    this.service = new CheckoutService(this.store, this.stripe, configFor(env), undefined, this.analytics);
   }
   async fetch(request) {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith('/admin/api/')) {
-        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson);
+        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson, undefined, this.analytics);
       }
       if (url.pathname === '/availability') return json({ available: this.store.status(), remainingBags: Math.max(0, this.store.available()), livemode: this.env.STRIPE_MODE === 'live' });
       if (url.pathname === '/order-status') {
@@ -162,6 +167,12 @@ export class Inventory extends DurableObject {
       }
       if (url.pathname === '/webhook') {
         await this.service.webhook(await request.json());
+        // Persist the outbox before acknowledging Stripe, but never couple GA availability to payment handling.
+        try {
+          this.analytics.capturePaid(Math.floor(Date.now() / 1000));
+          if (this.analytics.hasPending()) await this.ctx.storage.setAlarm(Date.now() + 60 * 1000);
+          this.ctx.waitUntil(this.analytics.flush().catch(() => console.error('analytics_delivery_deferred')));
+        } catch { console.error('analytics_delivery_deferred'); }
         return json({ received: true });
       }
       return json({ error: 'not_found' }, 404);
@@ -177,6 +188,7 @@ export class Inventory extends DurableObject {
     // Always reschedule first, including persistent upstream failures.
     await this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
     await this.service.reconcile();
-    if (!this.store.pending().length) await this.ctx.storage.deleteAlarm();
+    try { await this.analytics.flush(); } catch { console.error('analytics_delivery_deferred'); }
+    if (!this.store.pending().length && !this.analytics.hasPending()) await this.ctx.storage.deleteAlarm();
   }
 }

@@ -88,6 +88,21 @@ Stripe本番のセキュリティ申告は、本人の確認・送信承認を�
 
 ## 停止・復旧
 
+### GA4計測（2026-10-23追加）
+
+- 本番: BODY-MAKE CHIPS / property 560327232 / stream 16184150642 / G-Q7E7FLHEBP。検証用: BODY-MAKE CHIPS 検証用 / property 560326931 / G-1DEZNWRNKR。Googleアカウントはbodymakebase@gmail.com。
+- 本番ファネル: https://analytics.google.com/analytics/web/#/analysis/a413081712p560327232/edit/oej5-z2BTES07xqQCBDBjA 。LP閲覧 `lp_view` →セット選択 `select_item` →決済開始 `begin_checkout` →購入完了 `purchase`。閉じたファネル、間接的ステップ、デバイスカテゴリ別。今月を初期表示。
+- LP閲覧数は `lp_view` のイベント数。ファネルはユーザー数で、同じ人の再閲覧回数とは異なる。セット一覧表示 `view_item_list`、読了深度 `scroll_depth`（25/50/75/90）も送信。
+- `purchase` は署名検証済みStripe通知・照合済みpaid注文をサーバーから送信。ブラウザーの完了画面では送らない。注文IDを元にした安定したtransaction_idと送信済み記録で重複を抑止。通信失敗時は再送し、71時間を超えた未送信分はstaleにする。リトライ時も元の購入時刻を維持する。
+- 通貨JPY、金額は税込・送料込みの決済総額。数量はセット数（10袋セットならquantity=1）であり袋数ではない。GA4は広告遮断・解析停止・識別子未取得などで欠測し、返金を自動反映しない。注文総数・会計・返金の正本はStripe。
+- 公開ファイルは測定IDのみ。APIシークレットは各Workerの `GA4_API_SECRET` に保存。秘密値をGit・LP・ログへ載せない。更新は該当configで `wrangler secret put GA4_API_SECRET`。GA4側で新規キーを作成する場合は権限確認が必要。
+- 自動拡張計測は両ストリームOFF。手動でページURLを許可リスト化し、StripeセッションID・連絡先等を除外。氏名・住所・電話・メール・カード情報は送信しない。広告向け同意はDENIED、Googleシグナルなし。EEA/UK/CH・国不明は明示許可までタグを読み込まない。解析停止はprivacy.html#analytics。
+- 自分のアクセス除外: https://body-make-chips.jp/?analytics_internal=1 。そのブラウザーに保存。解除は同じURLの値を0にする。別端末はそれぞれ設定。
+- 本番イベント保持期間は14か月。通常レポートは反映に時間がかかるため、導入直後はリアルタイムで確認する。
+- 配信監視: 既存在庫管理セッションで認証された `GET /admin/api/analytics` はenabled・保存済みコンテキスト数・pending/sent/stale件数だけを返す。識別子・秘密値は返さない。未認証401を検証。pendingが長く残る場合はGA4キーとWorkerログの `analytics_http_status` / `analytics_delivery_retry` を確認する。
+- 検証: 自動テスト34件成功。SandboxでLP閲覧→商品選択→決済開始→実Stripeテストカード購入を実施。GA4検証用リアルタイムでpurchase=1、完了画面再読み込み後も1。送信失敗からの再送も実環境で確認（pending→sent）。解析停止後はGoogleタグ0・購入ボタン3つとも有効。Sandbox在庫457→454袋、本番には影響なし。
+- 本番Worker version: 94cee386-5501-48cb-b9a3-16c053d85b81。元のDurable Object名・在庫を維持。実課金テストは行わない。
+
 新規販売停止はWorkerの`SALE_ENABLED=false`を反映する。Webhookと既存注文の確認は継続する。LPは在庫照会に失敗すると購入ボタンを無効にする。
 
 Workerの再デプロイで在庫500を再投入しない。永続DBは初回だけ作成される。名前空間やWorker名の変更、DB削除は在庫リセットになるため、本番運用中に行わない。

@@ -13,6 +13,7 @@ fallthrough = true
 SITE_ORIGIN = "http://127.0.0.1:4175"
 STRIPE_MODE = "test"
 SALE_ENABLED = "true"
+GA4_MEASUREMENT_ID = "G-1DEZNWRNKR"
 PRICE_TRIAL = "price_1USLo32KjzkCozaCd9xf6ZcG"
 PRICE_DESK = "price_1USLrp2KjzkCozaCs2NRxuPM"
 PRICE_STOCK = "price_1UOY1N2KjzkCozaC5SjItp3X"

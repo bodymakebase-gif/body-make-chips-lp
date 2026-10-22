@@ -1,0 +1,27 @@
+{
+  "measurementId": "G-Q7E7FLHEBP",
+  "hosts": [
+    "body-make-chips.jp"
+  ],
+  "apiOrigin": "https://body-make-chips-checkout.body-make-chips-checkout.workers.dev",
+  "sets": [
+    {
+      "id": "trial",
+      "name": "お試し３袋",
+      "quantity": 3,
+      "price": 1280
+    },
+    {
+      "id": "desk",
+      "name": "10袋セット",
+      "quantity": 10,
+      "price": 3980
+    },
+    {
+      "id": "stock",
+      "name": "30袋セット",
+      "quantity": 30,
+      "price": 10500
+    }
+  ]
+}
