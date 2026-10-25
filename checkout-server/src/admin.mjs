@@ -26,7 +26,7 @@ export function validateAdminRequest(request, mode) {
   if (!['GET', 'POST'].includes(request.method)) throw new CheckoutError('method_not_allowed', 405);
 }
 
-export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null) {
+export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null, fulfillment = null) {
   const url = new URL(request.url);
   const token = cookieToken(request);
   if (url.pathname === '/admin/api/login' && request.method === 'POST') {
@@ -39,6 +39,15 @@ export async function adminApi(request, store, auth, keyHash, readJson, now = Ma
     return adminJson({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
   }
   const actor = await auth.authenticate(token, keyHash, now);
+  if (url.pathname === '/admin/api/orders' && request.method === 'GET') {
+    return adminJson(fulfillment.store.list(url.searchParams.get('status') || 'unshipped', Number(url.searchParams.get('after') || 0)));
+  }
+  if (url.pathname === '/admin/api/order' && request.method === 'GET') {
+    return adminJson(await fulfillment.detail(url.searchParams.get('id')));
+  }
+  if (url.pathname === '/admin/api/fulfillment' && request.method === 'POST') {
+    return adminJson(await fulfillment.update(await readJson(request), actor.actor, now));
+  }
   if (url.pathname === '/admin/api/analytics' && request.method === 'GET') {
     return adminJson(analytics?.status() || { enabled: false });
   }

@@ -1,14 +1,16 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫・注文管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
 <body data-environment="__ENVIRONMENT__">
 <header class="topbar"><a class="brand" href="/admin/">BODY-MAKE CHIPS<span>STOCK ROOM</span></a><span id="environment" class="badge">在庫管理</span><button id="logout" class="quiet" hidden>ログアウト</button></header>
 <main>
 <section id="login-panel" class="login panel">
-  <p class="eyebrow">FOR THE MAKER</p><h1>在庫を、<br>手元で管理。</h1><p class="intro">試供品の取り分けも、追加の納品も。<br>LPとつながる、あなたの在庫管理室です。</p>
+  <p class="eyebrow">FOR THE MAKER</p><h1>在庫も、注文も。<br>手元で管理。</h1><p class="intro">試供品の取り分けから、発送の記録まで。<br>LPとつながる、あなたの管理室です。</p>
   <form id="login-form"><label for="admin-key">管理キー</label><input id="admin-key" type="password" autocomplete="current-password" required spellcheck="false" autocapitalize="none" placeholder="専用の管理キーを貼り付け"><button class="primary" type="submit" id="login-button">管理画面を開く <span aria-hidden="true">→</span></button></form>
   <p id="login-message" class="message" role="status"></p><p class="small">初回の管理キーは、お渡しした「在庫管理_ログイン情報.txt」にあります。ログインは8時間有効です。</p>
 </section>
 <div id="dashboard" hidden>
+  <nav class="admin-tabs" aria-label="管理メニュー"><button id="inventory-tab" aria-current="page" aria-controls="inventory-panel">在庫</button><button id="orders-tab" aria-controls="orders-panel">注文・発送</button></nav>
+  <div id="inventory-panel">
   <div class="page-heading"><div><p class="eyebrow">YOUR INVENTORY</p><h1>在庫管理</h1><p>取り分けたら、ここに記録。</p></div><button id="refresh" class="secondary">最新の在庫に更新 <span aria-hidden="true">↻</span></button></div>
   <p id="status" class="message" role="status" aria-live="polite"></p>
   <section class="stock-grid" aria-label="現在の在庫">
@@ -30,12 +32,51 @@
       </fieldset></form>
     </section>
     <aside class="side-notes"><section class="panel"><p class="eyebrow">A QUICK GUIDE</p><h2>試供品を取りたいとき</h2><ol><li>「試供品として取り分ける」を選ぶ</li><li>取り分ける袋数を入力</li><li>内容を確認して登録</li></ol><p>登録した分だけ販売可能数が減り、LPにも反映されます。購入や決済の操作は不要です。</p><p class="small">入力を間違えたら、変更履歴から取り消せます。記録は残ります。</p></section>
-    <a class="external" href="https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/payments" target="_blank" rel="noopener noreferrer">注文・配送先をStripeで確認 <span aria-hidden="true">↗</span></a><a class="external" href="https://body-make-chips.jp/#lineup" target="_blank" rel="noopener noreferrer">公開LPを確認 <span aria-hidden="true">↗</span></a></aside>
+    <a id="stock-stripe" class="external" href="https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/payments" target="_blank" rel="noopener noreferrer">注文・配送先をStripeで確認 <span aria-hidden="true">↗</span></a><a class="external" href="https://body-make-chips.jp/#lineup" target="_blank" rel="noopener noreferrer">公開LPを確認 <span aria-hidden="true">↗</span></a></aside>
   </div>
   <section class="panel history-panel" aria-labelledby="history-title"><div class="section-heading"><div><p class="eyebrow">STOCK HISTORY</p><h2 id="history-title">変更履歴</h2></div><span class="small">日時は日本時間</span></div><p class="muted">手動で変更した記録です。購入による減算は、上の販売済み数とStripeで確認できます。</p><div id="history" class="history-list"></div><button id="load-more" class="secondary" hidden>以前の記録を表示</button></section>
-  <footer>BODY-MAKE CHIPS / 管理者専用<br><span>在庫は30秒ごとに更新します。</span></footer>
+  </div>
+  <section id="orders-panel" aria-labelledby="orders-title" hidden>
+    <div class="page-heading"><div><p class="eyebrow">ORDERS &amp; SHIPPING</p><h1 id="orders-title">注文・発送</h1><p>送るもの、送ったもの。ここでひと目に。</p></div><button id="orders-refresh" class="secondary">注文を更新 ↻</button></div>
+    <div class="order-flow"><span><b>01</b> 決済成功で未発送に</span><span><b>02</b> 荷物を渡したら発送済み</span><span><b>03</b> メールを送ったら連絡済み</span></div>
+    <p class="muted">LPで決済が完了した注文を表示します。発送の登録で在庫は減りません。発送予定：2026年11月5日から。</p>
+    <div class="order-filters" aria-label="発送状況で絞り込む">
+      <button data-order-filter="unshipped" aria-pressed="true"><span>未発送</span><strong id="count-unshipped">—</strong><small>これから発送</small></button>
+      <button data-order-filter="shipped" aria-pressed="false"><span>発送済み</span><strong id="count-shipped">—</strong><small>発送連絡がまだ</small></button>
+      <button data-order-filter="contacted" aria-pressed="false"><span>連絡済み</span><strong id="count-contacted">—</strong><small>メール送信完了</small></button>
+    </div>
+    <div class="order-list-heading"><button class="text-button" data-order-filter="all" aria-pressed="false">すべての注文 <span id="count-all">—</span></button><span class="small">古い注文から表示・日時は日本時間</span></div>
+    <p id="orders-message" class="message" role="status"></p>
+    <div id="orders-list" class="panel orders-list" aria-live="polite"></div><button id="orders-more" class="secondary" hidden>次の25件を表示</button>
+    <p class="small order-footnote">「連絡済み」は、お客様へ発送メールを送った記録です。この画面からメールは自動送信されません。返金・キャンセルはStripeで確認してください。</p>
+  </section>
+  <footer>BODY-MAKE CHIPS / 管理者専用<br><span>表示中の一覧は30秒ごとに更新します。</span></footer>
 </div>
 </main>
 <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><button id="dialog-close" class="close" aria-label="閉じる">×</button></form><p class="eyebrow">CHECK BEFORE SAVING</p><h2 id="confirm-title">この内容で登録しますか？</h2><p id="confirm-kind" class="confirm-kind"></p><p id="confirm-quantity" class="confirm-quantity"></p><p id="confirm-note" class="muted"></p><p id="confirm-impact" class="change-preview"></p><p class="small">登録時の最新在庫に反映します。購入手続き中・販売済みの数量は変更しません。</p><p id="confirm-error" class="message" role="alert"></p><div class="dialog-actions"><button id="cancel-change" class="secondary">戻る</button><button id="commit-change" class="primary">登録する</button></div></dialog>
 <noscript>この管理画面にはJavaScriptが必要です。ブラウザの設定を確認してください。</noscript>
+<dialog id="order-dialog" class="order-dialog" aria-labelledby="order-title">
+  <button id="order-close" class="close" aria-label="注文を閉じる">×</button><p class="eyebrow">ORDER DETAILS</p><h2 id="order-title">注文の詳細</h2>
+  <p id="order-error" class="message" role="alert"></p><button id="order-reload" class="secondary" hidden>最新の内容を読み直す</button>
+  <div id="order-content" hidden>
+    <div id="order-summary" class="order-summary"></div><p id="order-id" class="order-id"></p>
+    <div class="recipient-card"><h3>お届け先</h3><p id="order-recipient"></p><p id="order-contact"></p><a id="order-stripe" class="external" target="_blank" rel="noopener noreferrer">Stripeで決済・返金状況を確認 ↗</a></div>
+    <div id="shipment-summary" class="change-preview" hidden></div>
+    <form id="shipment-form"><fieldset id="shipment-fields"><legend>荷物を配送会社に渡したら</legend>
+      <p class="small">送り状を作っただけの場合は、まだ未発送のままにします。</p>
+      <div class="shipping-grid"><div><label for="shipped-date">発送日</label><input id="shipped-date" type="date" required></div><div><label for="shipping-carrier">配送会社</label><select id="shipping-carrier" required><option value="">選択してください</option><option>ヤマト運輸</option><option>日本郵便</option><option>佐川急便</option><option>その他</option></select></div></div>
+      <label for="shipping-tracking">追跡番号</label><input id="shipping-tracking" required maxlength="80" pattern="[A-Za-z0-9-]+" placeholder="ハイフンあり・なし、どちらでも可" autocomplete="off">
+      <label class="check-label"><input id="shipping-confirm" type="checkbox" required><span>Stripeで返金・キャンセルがないことを確認し、実際に発送しました。</span></label>
+      <button type="submit" class="primary">発送済みにする <span>→</span></button>
+    </fieldset></form>
+    <section id="contact-section" hidden><h3>次は、お客様へ発送のご連絡</h3><p class="muted">宛先と文面をコピーし、普段のメールから送信してください。</p>
+      <div class="mail-tools"><button id="copy-email" class="secondary">宛先をコピー</button><button id="copy-shipping-mail" class="secondary">発送メール文をコピー</button></div><p id="copy-result" class="small" role="status"></p>
+      <form id="contact-form"><fieldset id="contact-fields"><label class="check-label"><input id="contact-confirm" type="checkbox" required><span>配送会社・追跡番号を記載した発送メールを、お客様に送信しました。</span></label><button type="submit" class="primary">連絡済みにする <span>✓</span></button></fieldset></form>
+    </section>
+    <p id="contact-complete" class="complete-note" hidden></p>
+    <details id="order-correction" class="order-correction"><summary>登録を間違えた場合</summary><p class="small">一つ前の状態に戻します。メールの送信自体は取り消せません。配送情報の訂正は「未発送」に戻して登録し直してください。</p><form id="order-undo-form"><label for="order-undo-reason">戻す理由</label><input id="order-undo-reason" required maxlength="200" placeholder="例：追跡番号の入力間違い"><button class="secondary" type="submit" id="order-undo">一つ前の状態に戻す</button></form></details>
+    <details class="order-audit"><summary>この注文の操作履歴</summary><div id="order-audit"></div></details>
+  </div>
+  <div id="order-retry-box" class="warning" hidden><p>通信が途切れ、登録結果を確認できません。同じ番号で確認するため、二重には登録されません。</p><button id="order-retry" class="secondary">登録結果を確認</button></div>
+</dialog>
 </body></html>

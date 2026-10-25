@@ -6,6 +6,7 @@ import { CheckoutError } from './catalog.mjs';
 import { AdminAuthStore } from './admin-auth.mjs';
 import { adminAsset, adminApi, adminJson, validateAdminRequest } from './admin.mjs';
 import { PurchaseAnalytics, analyticsDefaultAllowed } from './analytics.mjs';
+import { FulfillmentStore, FulfillmentService } from './fulfillment.mjs';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 const configFor = env => ({
@@ -138,6 +139,7 @@ export class Inventory extends DurableObject {
     this.store = new InventoryStore(ctx.storage, env.STRIPE_MODE);
     this.adminAuth = new AdminAuthStore(ctx.storage);
     this.stripe = stripeClient(env);
+    this.fulfillment = new FulfillmentService(new FulfillmentStore(ctx.storage), this.stripe, env.STRIPE_MODE === 'live');
     this.analytics = new PurchaseAnalytics(ctx.storage, env);
     this.service = new CheckoutService(this.store, this.stripe, configFor(env), undefined, this.analytics);
   }
@@ -145,7 +147,7 @@ export class Inventory extends DurableObject {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith('/admin/api/')) {
-        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson, undefined, this.analytics);
+        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson, undefined, this.analytics, this.fulfillment);
       }
       if (url.pathname === '/availability') return json({ available: this.store.status(), remainingBags: Math.max(0, this.store.available()), livemode: this.env.STRIPE_MODE === 'live' });
       if (url.pathname === '/order-status') {
