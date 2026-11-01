@@ -18,10 +18,10 @@ const messages = {
   order_not_found: '支払い済みの注文が見つかりません。',
   order_needs_review: '決済記録との照合が必要です。発送を止め、Stripeで確認してください。',
   invalid_shipped_date: '発送日は注文日から今日までの実際の日付を指定してください。',
-  invalid_tracking: '追跡番号には半角英数字とハイフンを使ってください。',
+  invalid_tracking: '追跡番号を半角英数字とハイフンで入力するか、「なし」を選んでください。',
   invalid_fulfillment_input: '入力内容を確認してください。配送会社・追跡番号・訂正理由などに不備があります。',
   shipment_confirmation_required: '実際に発送したことを確認してください。',
-  contact_confirmation_required: 'お客様へメールを送信したことを確認してください。',
+  fulfillment_action_removed: '発送後の連絡工程は廃止されました。最新の内容を読み直してください。',
 };
 let summary = null, nextCursor = null, busy = false, loggedIn = false, pending = null, uncertain = false, refreshVersion = 0;
 try { pending = JSON.parse(sessionStorage.getItem('bmc-stock-pending') || 'null'); if (pending) uncertain = true; } catch {}
@@ -179,7 +179,8 @@ setInterval(() => { if (loggedIn && !busy && !pending && !document.hidden) refre
 document.addEventListener('visibilitychange', () => { if (!document.hidden && loggedIn && !busy && !pending) refresh(); });
 
 // Fulfillment and stock share authentication, but keep independent, audited records.
-const statusLabels = { unshipped: '未発送', shipped: '発送済み', contacted: '連絡済み' };
+const statusLabels = { unshipped: '未発送', shipped: '発送済み', contacted: '発送済み' };
+const trackingLabel = row => row.tracking ? `追跡番号 ${row.tracking}` : '追跡番号なし';
 const day = seconds => new Date((seconds + 9 * 3600) * 1000).toISOString().slice(0, 10);
 let activeTab = location.hash === '#orders' ? 'orders' : 'inventory';
 let orderFilter = 'unshipped', ordersNext = null, ordersVersion = 0, detailVersion = 0, activeOrderId = null, orderDetail = null, orderPending = null;
@@ -210,15 +211,15 @@ async function refreshOrders(append = false) {
   const data = await api(`orders?status=${orderFilter}${append && ordersNext ? '&after=' + ordersNext : ''}`);
   if (version !== ordersVersion || !loggedIn) return;
   const list = $('orders-list'); if (!append) list.replaceChildren();
-  for (const [key, count] of Object.entries(data.counts)) $('count-' + key).textContent = format(count);
+  for (const [key, count] of Object.entries(data.counts)) { const counter = $('count-' + key); if (counter) counter.textContent = format(count); }
   if (!data.items.length && !append) list.append(element('p', orderFilter === 'all' ? '支払い済みの注文はまだありません。' : `${statusLabels[orderFilter]}の注文はありません。`, 'empty'));
   for (const row of data.items) {
     const article = document.createElement('article'); article.className = 'order-row';
     const content = document.createElement('div'), top = document.createElement('div'); top.className = 'order-row-top';
     top.append(badge(row.status), element('span', date(row.created), 'small'));
     content.append(top, element('h3', `${row.name}　¥${format(row.amount)}`), element('p', `注文番号 ${row.id.slice(0, 8)} · ${row.bags}袋`, 'small'));
-    if (row.status !== 'unshipped') content.append(element('p', `${row.shipped_date} 発送 · ${row.carrier} · ${row.tracking}`, 'order-tracking'));
-    const button = element('button', row.status === 'unshipped' ? '確認・発送する →' : row.status === 'shipped' ? '発送連絡をする →' : '詳細を見る →', 'secondary');
+    if (row.status !== 'unshipped') content.append(element('p', `${row.shipped_date} 発送 · ${row.carrier} · ${trackingLabel(row)}`, 'order-tracking'));
+    const button = element('button', row.status === 'unshipped' ? '確認・発送する →' : '詳細を見る →', 'secondary');
     button.addEventListener('click', () => openOrder(orderPending?.id || row.id));
     article.append(content, button); list.append(article);
   }
@@ -259,25 +260,22 @@ function renderOrder() {
   $('order-contact').textContent = [recipient.email, recipient.phone].filter(Boolean).join('\n');
   $('order-stripe').href = orderDetail.stripeUrl;
   $('shipment-summary').hidden = row.status === 'unshipped';
-  $('shipment-summary').textContent = row.status === 'unshipped' ? '' : `発送日 ${row.shipped_date}\n${row.carrier} · 追跡番号 ${row.tracking}`;
+  $('shipment-summary').textContent = row.status === 'unshipped' ? '' : `発送日 ${row.shipped_date}\n${row.carrier} · ${trackingLabel(row)}`;
   $('shipment-form').hidden = row.status !== 'unshipped'; $('shipment-form').reset();
+  updateTrackingInput();
   $('shipped-date').value = day(Date.now() / 1000); $('shipped-date').max = day(Date.now() / 1000); $('shipped-date').min = day(row.created);
-  $('contact-section').hidden = row.status !== 'shipped'; $('contact-form').reset(); $('copy-result').textContent = '';
-  $('copy-email').disabled = !recipient.email;
-  $('contact-complete').hidden = row.status !== 'contacted';
-  $('contact-complete').textContent = row.contacted_at ? `${date(row.contacted_at)} に発送連絡を記録しました。` : '';
   $('order-correction').hidden = row.status === 'unshipped'; $('order-correction').open = false; $('order-undo-form').reset();
-  $('order-undo').textContent = row.status === 'contacted' ? '発送済みに戻す' : '未発送に戻す';
+  $('order-undo').textContent = '未発送に戻す';
   $('order-audit').replaceChildren();
   if (!events.length) $('order-audit').append(element('p', '発送の操作はまだありません。', 'small'));
   for (const event of events) {
-    const item = element('p', `${date(event.created)} · ${statusLabels[event.before.status]} → ${statusLabels[event.after.status]}\n${event.reason || (event.action === 'ship' ? `${event.after.carrier} ${event.after.tracking}（発送日 ${event.after.shipped_date}）` : 'お客様への発送連絡を記録')}`, 'audit-item');
+    const item = element('p', `${date(event.created)} · ${statusLabels[event.before.status]} → ${statusLabels[event.after.status]}\n${event.reason || (event.action === 'ship' ? `${event.after.carrier} · ${trackingLabel(event.after)}（発送日 ${event.after.shipped_date}）` : '発送連絡の記録（旧運用）')}`, 'audit-item');
     $('order-audit').append(item);
   }
   setOrderDisabled(Boolean(orderPending));
 }
 function setOrderDisabled(value) {
-  $('shipment-fields').disabled = value; $('contact-fields').disabled = value; $('order-undo').disabled = value;
+  $('shipment-fields').disabled = value; $('order-undo').disabled = value;
   $('order-retry-box').hidden = !orderPending; $('order-retry').disabled = busy;
   $('order-close').disabled = busy;
 }
@@ -299,13 +297,17 @@ async function saveOrder(input) {
   }
 }
 function orderInput(action) { return { operationId: crypto.randomUUID(), id: orderDetail.order.id, version: orderDetail.order.version, action }; }
+function updateTrackingInput() {
+  const provided = $('shipping-tracking-mode').value === 'provided';
+  $('shipping-tracking-field').hidden = !provided;
+  $('shipping-tracking').disabled = !provided;
+  $('shipping-tracking').required = provided;
+}
+$('shipping-tracking-mode').addEventListener('change', updateTrackingInput);
 $('shipment-form').addEventListener('submit', event => {
   event.preventDefault(); if (!orderDetail || orderPending || busy) return;
-  saveOrder({ ...orderInput('ship'), shippedDate: $('shipped-date').value, carrier: $('shipping-carrier').value, tracking: $('shipping-tracking').value.trim(), confirmed: $('shipping-confirm').checked });
-});
-$('contact-form').addEventListener('submit', event => {
-  event.preventDefault(); if (!orderDetail || orderPending || busy) return;
-  saveOrder({ ...orderInput('contact'), confirmed: $('contact-confirm').checked });
+  const trackingProvided = $('shipping-tracking-mode').value === 'provided';
+  saveOrder({ ...orderInput('ship'), shippedDate: $('shipped-date').value, carrier: $('shipping-carrier').value, trackingProvided, tracking: trackingProvided ? $('shipping-tracking').value.trim() : '', confirmed: $('shipping-confirm').checked });
 });
 $('order-undo-form').addEventListener('submit', event => {
   event.preventDefault(); if (!orderDetail || orderPending || busy) return;
@@ -316,15 +318,5 @@ $('order-reload').addEventListener('click', () => { if (activeOrderId) openOrder
 function closeOrder() { if (busy) return; detailVersion++; $('order-dialog').close(); orderDetail = null; $('order-content').hidden = true; }
 $('order-close').addEventListener('click', closeOrder);
 $('order-dialog').addEventListener('cancel', event => { event.preventDefault(); closeOrder(); });
-async function copyOrderText(text) {
-  try { await navigator.clipboard.writeText(text); $('copy-result').textContent = 'コピーしました。メールに貼り付け、内容を確認して送信してください。'; }
-  catch { $('copy-result').textContent = 'コピーできませんでした。ブラウザのクリップボード許可を確認してください。'; }
-}
-$('copy-email').addEventListener('click', () => { if (orderDetail) copyOrderText(orderDetail.recipient.email); });
-$('copy-shipping-mail').addEventListener('click', () => {
-  if (!orderDetail) return;
-  const { order: row, recipient } = orderDetail;
-  copyOrderText(`件名：【BODY-MAKE CHIPS】商品を発送しました\n\n${recipient.name ? recipient.name + ' 様\n\n' : ''}このたびはBODY-MAKE CHIPSをご注文いただき、ありがとうございます。\nご注文の商品を発送いたしました。\n\nご注文：${row.name}\n注文番号：${row.id}\n発送日：${row.shipped_date}\n配送会社：${row.carrier}\n追跡番号：${row.tracking}\n\n配送状況は配送会社の追跡サービスでご確認いただけます。追跡情報の反映には時間がかかる場合がございます。\n商品のお届けまで、もうしばらくお待ちください。\n\nBODY-MAKE BASE\nhttps://body-make-chips.jp/`);
-});
 switchTab(activeTab);
 refresh(true);

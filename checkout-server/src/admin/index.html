@@ -38,17 +38,16 @@
   </div>
   <section id="orders-panel" aria-labelledby="orders-title" hidden>
     <div class="page-heading"><div><p class="eyebrow">ORDERS &amp; SHIPPING</p><h1 id="orders-title">注文・発送</h1><p>送るもの、送ったもの。ここでひと目に。</p></div><button id="orders-refresh" class="secondary">注文を更新 ↻</button></div>
-    <div class="order-flow"><span><b>01</b> 決済成功で未発送に</span><span><b>02</b> 荷物を渡したら発送済み</span><span><b>03</b> メールを送ったら連絡済み</span></div>
+    <div class="order-flow"><span><b>01</b> 決済成功で未発送に</span><span><b>02</b> 荷物を渡したら発送済みで完了</span></div>
     <p class="muted">LPで決済が完了した注文を表示します。発送の登録で在庫は減りません。</p>
     <div class="order-filters" aria-label="発送状況で絞り込む">
       <button data-order-filter="unshipped" aria-pressed="true"><span>未発送</span><strong id="count-unshipped">—</strong><small>これから発送</small></button>
-      <button data-order-filter="shipped" aria-pressed="false"><span>発送済み</span><strong id="count-shipped">—</strong><small>発送連絡がまだ</small></button>
-      <button data-order-filter="contacted" aria-pressed="false"><span>連絡済み</span><strong id="count-contacted">—</strong><small>メール送信完了</small></button>
+      <button data-order-filter="shipped" aria-pressed="false"><span>発送済み</span><strong id="count-shipped">—</strong><small>発送完了</small></button>
     </div>
     <div class="order-list-heading"><button class="text-button" data-order-filter="all" aria-pressed="false">すべての注文 <span id="count-all">—</span></button><span class="small">古い注文から表示・日時は日本時間</span></div>
     <p id="orders-message" class="message" role="status"></p>
     <div id="orders-list" class="panel orders-list" aria-live="polite"></div><button id="orders-more" class="secondary" hidden>次の25件を表示</button>
-    <p class="small order-footnote">「連絡済み」は、お客様へ発送メールを送った記録です。この画面からメールは自動送信されません。返金・キャンセルはStripeで確認してください。</p>
+    <p class="small order-footnote">荷物を配送会社に渡したら「発送済み」にして完了です。返金・キャンセルはStripeで確認してください。</p>
   </section>
   <footer>BODY-MAKE CHIPS / 管理者専用<br><span>表示中の一覧は30秒ごとに更新します。</span></footer>
 </div>
@@ -65,16 +64,12 @@
     <form id="shipment-form"><fieldset id="shipment-fields"><legend>荷物を配送会社に渡したら</legend>
       <p class="small">送り状を作っただけの場合は、まだ未発送のままにします。</p>
       <div class="shipping-grid"><div><label for="shipped-date">発送日</label><input id="shipped-date" type="date" required></div><div><label for="shipping-carrier">配送会社</label><select id="shipping-carrier" required><option value="">選択してください</option><option>ヤマト運輸</option><option>日本郵便</option><option>佐川急便</option><option>その他</option></select></div></div>
-      <label for="shipping-tracking">追跡番号</label><input id="shipping-tracking" required maxlength="80" pattern="[A-Za-z0-9-]+" placeholder="ハイフンあり・なし、どちらでも可" autocomplete="off">
+      <label for="shipping-tracking-mode">追跡番号</label><select id="shipping-tracking-mode"><option value="provided">あり（番号を入力）</option><option value="none">なし</option></select>
+      <div id="shipping-tracking-field"><label for="shipping-tracking">追跡番号を入力</label><input id="shipping-tracking" required maxlength="80" pattern="[A-Za-z0-9-]+" placeholder="ハイフンあり・なし、どちらでも可" autocomplete="off"></div>
       <label class="check-label"><input id="shipping-confirm" type="checkbox" required><span>Stripeで返金・キャンセルがないことを確認し、実際に発送しました。</span></label>
       <button type="submit" class="primary">発送済みにする <span>→</span></button>
     </fieldset></form>
-    <section id="contact-section" hidden><h3>次は、お客様へ発送のご連絡</h3><p class="muted">宛先と文面をコピーし、普段のメールから送信してください。</p>
-      <div class="mail-tools"><button id="copy-email" class="secondary">宛先をコピー</button><button id="copy-shipping-mail" class="secondary">発送メール文をコピー</button></div><p id="copy-result" class="small" role="status"></p>
-      <form id="contact-form"><fieldset id="contact-fields"><label class="check-label"><input id="contact-confirm" type="checkbox" required><span>配送会社・追跡番号を記載した発送メールを、お客様に送信しました。</span></label><button type="submit" class="primary">連絡済みにする <span>✓</span></button></fieldset></form>
-    </section>
-    <p id="contact-complete" class="complete-note" hidden></p>
-    <details id="order-correction" class="order-correction"><summary>登録を間違えた場合</summary><p class="small">一つ前の状態に戻します。メールの送信自体は取り消せません。配送情報の訂正は「未発送」に戻して登録し直してください。</p><form id="order-undo-form"><label for="order-undo-reason">戻す理由</label><input id="order-undo-reason" required maxlength="200" placeholder="例：追跡番号の入力間違い"><button class="secondary" type="submit" id="order-undo">一つ前の状態に戻す</button></form></details>
+    <details id="order-correction" class="order-correction"><summary>登録を間違えた場合</summary><p class="small">配送情報の訂正は「未発送」に戻して登録し直してください。</p><form id="order-undo-form"><label for="order-undo-reason">戻す理由</label><input id="order-undo-reason" required maxlength="200" placeholder="例：発送日の入力間違い"><button class="secondary" type="submit" id="order-undo">未発送に戻す</button></form></details>
     <details class="order-audit"><summary>この注文の操作履歴</summary><div id="order-audit"></div></details>
   </div>
   <div id="order-retry-box" class="warning" hidden><p>通信が途切れ、登録結果を確認できません。同じ番号で確認するため、二重には登録されません。</p><button id="order-retry" class="secondary">登録結果を確認</button></div>

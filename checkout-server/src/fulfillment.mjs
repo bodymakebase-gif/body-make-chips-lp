@@ -1,14 +1,16 @@
 import { CATALOG, CheckoutError } from './catalog.mjs';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const states = ['unshipped', 'shipped', 'contacted'];
+const states = ['unshipped', 'shipped'];
 export const japanDay = seconds => new Date((seconds + 9 * 3600) * 1000).toISOString().slice(0, 10);
 const clean = (value, max, required = false) => {
   if (typeof value !== 'string' || value.length > max || /[\u0000-\u001f\u007f]/.test(value) || (required && !value.trim())) throw new CheckoutError('invalid_fulfillment_input');
   return value.trim();
 };
+// Retain the old ledger values and audit trail while showing one completed shipping state.
+const statusSql = "CASE WHEN f.state = 'contacted' THEN 'shipped' ELSE COALESCE(f.state, 'unshipped') END";
 const select = `SELECT r.rowid AS cursor, r.request_id AS id, r.session_id, r.set_id, r.bags, r.amount, r.created,
-  COALESCE(f.state, 'unshipped') AS status, COALESCE(f.version, 0) AS version,
+  ${statusSql} AS status, COALESCE(f.version, 0) AS version,
   f.shipped_date, f.carrier, f.tracking, f.contacted_at, f.updated
   FROM reservations r LEFT JOIN fulfillment_orders f ON f.request_id = r.request_id`;
 
@@ -38,11 +40,11 @@ export class FulfillmentStore {
   list(status = 'unshipped', after = 0) {
     if (![...states, 'all'].includes(status) || !Number.isSafeInteger(after) || after < 0) throw new CheckoutError('invalid_filter');
     const rows = this.sql.exec(select + ` WHERE r.state = 'paid' AND r.rowid > ?
-      AND (? = 'all' OR COALESCE(f.state, 'unshipped') = ?) ORDER BY r.rowid ASC LIMIT 26`, after, status, status).toArray();
-    const counts = { unshipped: 0, shipped: 0, contacted: 0, all: 0 };
-    for (const row of this.sql.exec(`SELECT COALESCE(f.state, 'unshipped') AS status, COUNT(*) AS count
+      AND (? = 'all' OR ${statusSql} = ?) ORDER BY r.rowid ASC LIMIT 26`, after, status, status).toArray();
+    const counts = { unshipped: 0, shipped: 0, all: 0 };
+    for (const row of this.sql.exec(`SELECT ${statusSql} AS status, COUNT(*) AS count
       FROM reservations r LEFT JOIN fulfillment_orders f ON f.request_id = r.request_id
-      WHERE r.state = 'paid' GROUP BY COALESCE(f.state, 'unshipped')`).toArray()) {
+      WHERE r.state = 'paid' GROUP BY ${statusSql}`).toArray()) {
       counts[row.status] = row.count; counts.all += row.count;
     }
     return { items: rows.slice(0, 25).map(row => ({ ...row, name: CATALOG[row.set_id]?.name || row.set_id })),
@@ -63,8 +65,16 @@ export class FulfillmentStore {
       if (input.confirmed !== true) throw new CheckoutError('shipment_confirmation_required');
       data.shippedDate = clean(input.shippedDate, 10, true);
       data.carrier = clean(input.carrier, 40, true);
-      data.tracking = clean(input.tracking, 80, true);
-      if (!/^[A-Za-z0-9-]+$/.test(data.tracking)) throw new CheckoutError('invalid_tracking');
+      if (input.trackingProvided !== undefined && typeof input.trackingProvided !== 'boolean') throw new CheckoutError('invalid_fulfillment_input');
+      if (input.trackingProvided === false) {
+        if (clean(input.tracking ?? '', 80)) throw new CheckoutError('invalid_tracking');
+        data.tracking = null;
+        data.trackingProvided = false;
+      } else {
+        // Keep the old payload shape so retries recorded before this option remain idempotent.
+        data.tracking = clean(input.tracking, 80, true);
+        if (!/^[A-Za-z0-9-]+$/.test(data.tracking)) throw new CheckoutError('invalid_tracking');
+      }
     } else if (input.action === 'contact') {
       if (input.confirmed !== true) throw new CheckoutError('contact_confirmation_required');
     } else data.reason = clean(input.reason, 200, true);
@@ -80,6 +90,8 @@ export class FulfillmentStore {
     const data = this.normalize(input);
     return this.storage.transactionSync(() => {
       const prior = this.repeat(data); if (prior) return prior;
+      // Historical contact retries may be acknowledged, but no new contact step is recorded.
+      if (data.action === 'contact') throw new CheckoutError('fulfillment_action_removed', 409);
       const row = this.get(data.id);
       if (row.version !== data.version) throw new CheckoutError('order_changed', 409);
       const next = { status: row.status, shipped_date: row.shipped_date, carrier: row.carrier, tracking: row.tracking, contacted_at: row.contacted_at };
@@ -89,13 +101,9 @@ export class FulfillmentStore {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(data.shippedDate) || !Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== data.shippedDate ||
             data.shippedDate > japanDay(now) || data.shippedDate < japanDay(row.created)) throw new CheckoutError('invalid_shipped_date');
         Object.assign(next, { status: 'shipped', shipped_date: data.shippedDate, carrier: data.carrier, tracking: data.tracking, contacted_at: null });
-      } else if (data.action === 'contact') {
-        if (row.status !== 'shipped') throw new CheckoutError('invalid_transition', 409);
-        Object.assign(next, { status: 'contacted', contacted_at: now });
       } else {
         if (row.status === 'unshipped') throw new CheckoutError('invalid_transition', 409);
-        Object.assign(next, row.status === 'contacted' ? { status: 'shipped', contacted_at: null } :
-          { status: 'unshipped', shipped_date: null, carrier: null, tracking: null, contacted_at: null });
+        Object.assign(next, { status: 'unshipped', shipped_date: null, carrier: null, tracking: null, contacted_at: null });
       }
       this.sql.exec(`INSERT INTO fulfillment_orders(request_id, state, version, shipped_date, carrier, tracking, contacted_at, updated)
         VALUES(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(request_id) DO UPDATE SET state=excluded.state, version=excluded.version,

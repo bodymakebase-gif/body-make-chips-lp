@@ -42,6 +42,18 @@ const ship = (id, version = 0) => ({ operationId: randomUUID(), id, version, act
 const step = (id, version, action, extra = {}) => ({ operationId: randomUUID(), id, version, action, ...extra });
 const code = expected => error => error.code === expected;
 
+function legacyContact(fixture, id) {
+  const { store, db } = fixture, before = store.get(id);
+  const input = step(id, before.version, 'contact', { confirmed: true });
+  const payload = { id, operationId: input.operationId, version: input.version, action: input.action };
+  const after = { ...before, status: 'contacted', version: before.version + 1, contacted_at: now + 1, updated: now + 1 };
+  db.prepare("UPDATE fulfillment_orders SET state = 'contacted', version = ?, contacted_at = ?, updated = ? WHERE request_id = ?")
+    .run(after.version, after.contacted_at, after.updated, id);
+  db.prepare('INSERT INTO fulfillment_events(operation_id, request_id, action, payload, before_json, after_json, actor, created) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(input.operationId, id, 'contact', JSON.stringify(payload), JSON.stringify(before), JSON.stringify(after), '旧管理者', now + 1);
+  return input;
+}
+
 test('old and new paid orders appear once as unshipped; unpaid orders never appear', () => {
   const { store, add, first, inventory, sessions } = setup(); const unpaid = add(false); const second = add();
   const items = store.list().items;
@@ -50,16 +62,14 @@ test('old and new paid orders appear once as unshipped; unpaid orders never appe
   inventory.applySession(sessions.get(inventory.get(first).session_id), now, 'evt_repeated');
   assert.equal(store.list().items.length, 2);
 });
-test('ship, contact and audited corrections persist without changing any inventory quantity', async () => {
+test('shipping and audited corrections persist without changing any inventory quantity', async () => {
   const { store, service, inventory, storage, first } = setup(); const before = inventory.summary();
   assert.equal((await service.update(ship(first), '管理者', now)).order.status, 'shipped');
   assert.equal(store.list('unshipped').items.length, 0); assert.equal(store.list('shipped').counts.shipped, 1);
-  assert.equal(store.update(step(first, 1, 'contact', { confirmed: true }), '管理者', now + 1).order.contacted_at, now + 1);
-  const reopened = new FulfillmentStore(storage); assert.equal(reopened.get(first).status, 'contacted');
-  store.update(step(first, 2, 'undo', { reason: '宛先の再確認' }), '管理者', now + 2);
-  store.update(step(first, 3, 'undo', { reason: '追跡番号の訂正' }), '管理者', now + 3);
+  const reopened = new FulfillmentStore(storage); assert.equal(reopened.get(first).status, 'shipped');
+  store.update(step(first, 1, 'undo', { reason: '追跡番号の訂正' }), '管理者', now + 1);
   assert.equal(store.get(first).status, 'unshipped'); assert.equal(store.get(first).tracking, null);
-  assert.equal(store.history(first).length, 4); assert.equal(store.history(first)[0].before.tracking, '1234-5678-9012');
+  assert.equal(store.history(first).length, 2); assert.equal(store.history(first)[0].before.tracking, '1234-5678-9012');
   assert.deepEqual(inventory.summary(), before); assert.equal(inventory.get(first).state, 'paid');
 });
 test('lost-response retries cannot double-register and stale screens cannot overwrite another operator', async () => {
@@ -67,19 +77,64 @@ test('lost-response retries cannot double-register and stale screens cannot over
   const results = await Promise.all([service.update(input, '管理者', now), service.update(input, '管理者', now)]);
   assert.equal(results.filter(result => result.duplicate).length, 1); assert.equal(store.history(first).length, 1);
   await assert.rejects(service.update(ship(first), '管理者', now), code('order_changed'));
-  store.update(step(first, 1, 'contact', { confirmed: true }), '管理者', now + 1);
-  assert.equal((await service.update(input, '管理者', now + 2)).order.status, 'contacted');
+  store.update(step(first, 1, 'undo', { reason: '配送情報の訂正' }), '管理者', now + 1);
+  assert.equal((await service.update(input, '管理者', now + 2)).order.status, 'unshipped');
+  assert.equal((await service.update({ ...input, trackingProvided: true }, '管理者', now + 2)).duplicate, true);
   await assert.rejects(service.update({ ...input, tracking: '9999' }, '管理者', now), code('request_conflict'));
 });
 test('invalid transitions, date, tracking and missing confirmations cannot create history', () => {
   const { store, first, add } = setup();
-  assert.throws(() => store.update(step(first, 0, 'contact', { confirmed: true }), '管理者', now), code('invalid_transition'));
+  assert.throws(() => store.update(step(first, 0, 'contact', { confirmed: true }), '管理者', now), code('fulfillment_action_removed'));
   assert.throws(() => store.update(step(first, 0, 'undo', { reason: '誤登録' }), '管理者', now), code('invalid_transition'));
   for (const shippedDate of ['2026-10-26', '2026-10-24', '2026-02-30', '2026-1-25', 'garbage']) assert.throws(() => store.update({ ...ship(first), shippedDate }, '管理者', now), code('invalid_shipped_date'));
   assert.throws(() => store.update({ ...ship(first), confirmed: false }, '管理者', now), code('shipment_confirmation_required'));
   assert.throws(() => store.update({ ...ship(first), tracking: '<script>' }, '管理者', now), code('invalid_tracking'));
   assert.throws(() => store.update(ship(add(false)), '管理者', now), code('order_not_found'));
   assert.equal(store.history(first).length, 0);
+});
+
+test('explicit no-tracking shipments persist, retry and undo without changing inventory', async () => {
+  const { store, service, inventory, storage, first } = setup(), before = inventory.summary();
+  const input = { ...ship(first), trackingProvided: false, tracking: '' };
+  const result = await service.update(input, '管理者', now);
+  assert.equal(result.order.status, 'shipped'); assert.equal(result.order.tracking, null);
+  assert.equal((await service.update(input, '管理者', now + 1)).duplicate, true);
+  const reopened = new FulfillmentStore(storage); assert.equal(reopened.get(first).tracking, null);
+  assert.equal(store.history(first).length, 1); assert.equal(store.history(first)[0].after.tracking, null);
+  await assert.rejects(service.update({ ...input, trackingProvided: true, tracking: '9999' }, '管理者', now + 1), code('request_conflict'));
+  store.update(step(first, 1, 'undo', { reason: '配送方法の訂正' }), '管理者', now + 2);
+  assert.equal(store.get(first).status, 'unshipped'); assert.equal(store.get(first).tracking, null);
+  assert.equal((await service.update(input, '管理者', now + 3)).order.status, 'unshipped');
+  assert.equal(store.history(first).length, 2); assert.deepEqual(inventory.summary(), before);
+});
+
+test('missing or contradictory tracking selections and invalid option types cannot record shipments', () => {
+  const { store, first } = setup();
+  for (const extra of [{ tracking: '' }, { trackingProvided: true, tracking: '' }, { trackingProvided: false, tracking: '1234' }, { trackingProvided: 'false' }, { trackingProvided: null }]) {
+    assert.throws(() => store.update({ ...ship(first), ...extra }, '管理者', now));
+  }
+  assert.equal(store.get(first).status, 'unshipped'); assert.equal(store.history(first).length, 0);
+  assert.equal(store.update({ ...ship(first), trackingProvided: true }, '管理者', now).order.tracking, '1234-5678-9012');
+});
+
+test('legacy contacted records appear as shipped and undo directly while preserving historical records', async () => {
+  const fixture = setup(), { store, service, inventory, first, db } = fixture, before = inventory.summary();
+  await service.update(ship(first), '管理者', now);
+  const legacyInput = legacyContact(fixture, first);
+  assert.equal(db.prepare('SELECT state FROM fulfillment_orders WHERE request_id = ?').get(first).state, 'contacted');
+  assert.equal(store.get(first).status, 'shipped');
+  assert.equal((await service.detail(first)).order.status, 'shipped');
+  assert.deepEqual(store.list('shipped').items.map(row => row.id), [first]);
+  assert.deepEqual(store.list('all').counts, { unshipped: 0, shipped: 1, all: 1 });
+  assert.throws(() => store.list('contacted'), code('invalid_filter'));
+  assert.equal(store.history(first)[0].after.status, 'contacted');
+  assert.equal((await service.update(legacyInput, '管理者', now + 2)).duplicate, true);
+  await assert.rejects(service.update(step(first, 2, 'contact', { confirmed: true }), '管理者', now + 2), code('fulfillment_action_removed'));
+  assert.equal(store.history(first).length, 2);
+  store.update(step(first, 2, 'undo', { reason: '配送情報の訂正' }), '管理者', now + 3);
+  assert.equal(store.get(first).status, 'unshipped'); assert.equal(store.get(first).contacted_at, null);
+  assert.equal(store.history(first)[1].after.status, 'contacted');
+  assert.deepEqual(inventory.summary(), before);
 });
 test('payment updates never reset shipping state; mismatched authoritative Stripe sessions block shipping', async () => {
   const { store, service, first, sessions, inventory } = setup();
@@ -105,8 +160,8 @@ test('same-second orders paginate without duplication and filters/counts track e
   const a = store.list(), b = store.list('unshipped', a.next);
   assert.equal(a.items.length, 25); assert.equal(b.items.length, 6); assert.equal(b.next, null);
   assert.equal(new Set([...a.items, ...b.items].map(row => row.id)).size, 31);
-  store.update(ship(first), '管理者', now); store.update(step(first, 1, 'contact', { confirmed: true }), '管理者', now);
-  assert.deepEqual(store.list('all').counts, { unshipped: 30, shipped: 0, contacted: 1, all: 31 });
+  store.update(ship(first), '管理者', now);
+  assert.deepEqual(store.list('all').counts, { unshipped: 30, shipped: 1, all: 31 });
   for (const filter of ['__proto__', "' OR 1=1"]) assert.throws(() => store.list(filter));
   assert.throws(() => store.list('all', NaN));
 });
