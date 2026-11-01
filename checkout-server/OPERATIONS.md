@@ -68,6 +68,8 @@ Stripe本番のセキュリティ申告は、本人の確認・送信承認を�
 
 本番URL: <https://body-make-chips-checkout.body-make-chips-checkout.workers.dev/admin/>
 
+2026-11-02修正: Google Driveのハンドブックから開くと `Sec-Fetch-Site: cross-site` により403になっていた。HTTPSの `/admin`・`/admin/` へのGETかつ通常のページ遷移（`navigate` / `document`）だけを許可し、API・埋め込み・不正Originの拒否と管理キー認証は維持。本番反映版 `b8996c1b-f584-48f1-907b-8fe0fcf070e4`。自動テスト43件成功、ハンドブック相当のアクセス200、未認証API401、外部OriginのAPI403を確認。反映前後の公開在庫は457袋で一致。
+
 専用の管理キーでログインする。管理キーは運営者のPCの `%LOCALAPPDATA%\BODY-MAKE CHIPS\inventory-admin\在庫管理_ログイン情報.txt` に保存。Git、公開LP、Google Driveには保存しない。Stripe・Cloudflareのログインパスワードとは別。ログインは8時間有効で、ログアウトするとその端末のセッションを無効にする。
 
 1. 「販売可能」「購入手続き中」「販売済み」を確認する。購入手続き中の一時確保も差し引いた数量が販売可能数。販売済みは決済成功の累計で、未発送や返金した注文も含まれるため、現物在庫とは区別する。

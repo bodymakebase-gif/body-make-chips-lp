@@ -110,6 +110,21 @@ test('same-second orders paginate without duplication and filters/counts track e
   for (const filter of ['__proto__', "' OR 1=1"]) assert.throws(() => store.list(filter));
   assert.throws(() => store.list('all', NaN));
 });
+test('external handbook links open the admin entry without allowing cross-site API or embedded requests', () => {
+  const headers = { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document', referer: 'https://docs.google.com/' };
+  for (const path of ['/admin', '/admin/']) {
+    assert.doesNotThrow(() => validateAdminRequest(new Request('https://admin.example' + path, { headers }), 'live'));
+    assert.throws(() => validateAdminRequest(new Request('http://admin.example' + path, { headers }), 'live'), code('https_required'));
+    for (const extra of [{ 'sec-fetch-mode': 'cors' }, { 'sec-fetch-dest': 'iframe' }, { origin: 'https://docs.google.com' }]) {
+      assert.throws(() => validateAdminRequest(new Request('https://admin.example' + path, { headers: { ...headers, ...extra } }), 'live'), code('origin_not_allowed'));
+    }
+  }
+  for (const path of ['/admin/api/summary', '/admin/api/orders', '/admin/api/login', '/admin/admin.js']) {
+    assert.throws(() => validateAdminRequest(new Request('https://admin.example' + path, { headers }), 'live'), code('origin_not_allowed'));
+  }
+  assert.throws(() => validateAdminRequest(new Request('https://admin.example/admin/', { method: 'POST', headers }), 'live'), code('origin_not_allowed'));
+});
+
 test('all fulfillment endpoints require authentication, enforce same-origin writes and return no-store', async () => {
   const { storage, inventory, service, first } = setup();
   const auth = new AdminAuthStore(storage), hash = await digest('test-key-for-unit-tests');

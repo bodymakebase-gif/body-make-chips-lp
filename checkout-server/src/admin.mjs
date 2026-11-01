@@ -21,7 +21,10 @@ export function validateAdminRequest(request, mode) {
   const url = new URL(request.url);
   if (url.protocol !== 'https:' && !(mode === 'test' && ['127.0.0.1', 'localhost'].includes(url.hostname))) throw new CheckoutError('https_required', 403);
   const origin = request.headers.get('origin');
-  if ((origin && origin !== url.origin) || (request.headers.get('sec-fetch-site') === 'cross-site')) throw new CheckoutError('origin_not_allowed', 403);
+  // External handbook links may open the login page; API requests stay same-origin.
+  const entryNavigation = request.method === 'GET' && ['/admin', '/admin/'].includes(url.pathname) &&
+    request.headers.get('sec-fetch-mode') === 'navigate' && request.headers.get('sec-fetch-dest') === 'document';
+  if ((origin && origin !== url.origin) || (request.headers.get('sec-fetch-site') === 'cross-site' && !entryNavigation)) throw new CheckoutError('origin_not_allowed', 403);
   if (request.method === 'POST' && (origin !== url.origin || request.headers.get('x-bmc-admin') !== '1')) throw new CheckoutError('origin_not_allowed', 403);
   if (!['GET', 'POST'].includes(request.method)) throw new CheckoutError('method_not_allowed', 405);
 }
