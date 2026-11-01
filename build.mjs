@@ -23,7 +23,6 @@ const tokens = {
   saleStateNote: escape(live ? config.notice : `現在、${config.saleLabel}です。`),
   lineupIntro: live ? '３つのセットからお選びください。<br />価格はすべて税込・送料込みです。' : '販売開始に向けて、３つのセットをご用意しています。<br />販売予定価格は、すべて税込・送料込みです。',
   availabilityCopy: escape(live ? config.notice : `現在、${config.saleLabel}です。まだご注文いただけません。`),
-  purchaseFaq: escape(live ? `セット一覧からご注文いただけます。${config.notice}` : `現在、${config.saleLabel}です。${config.notice}`),
   trialRepeatFaq: escape(live ? 'お試し３袋の購入回数に制限は設けていません。' : '販売開始後、お試し３袋の購入回数に制限は設けません。'),
   legalSaleState: live ? '' : '現在は販売準備中です。販売開始後、',
   saleConfig: JSON.stringify({saleStatus:config.saleStatus,checkout}).replace(/</g, '\\u003c'),
