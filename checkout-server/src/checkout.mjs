@@ -1,12 +1,12 @@
-import { CheckoutError, SHIPPING_START, validateRequest } from './catalog.mjs';
+import { CheckoutError, validateRequest } from './catalog.mjs';
 
 export function sessionParameters(row, config) {
   return {
     mode: 'payment',
     line_items: [{ price: row.price_id, quantity: 1 }],
     client_reference_id: row.request_id,
-    metadata: { set_id: row.set_id, bags: String(row.bags), shipping_start: SHIPPING_START },
-    payment_intent_data: { metadata: { set_id: row.set_id, bags: String(row.bags), shipping_start: SHIPPING_START } },
+    metadata: { set_id: row.set_id, bags: String(row.bags) },
+    payment_intent_data: { metadata: { set_id: row.set_id, bags: String(row.bags) } },
     shipping_address_collection: { allowed_countries: ['JP'] },
     phone_number_collection: { enabled: true },
     // Shipping already requires the recipient name; avoid asking for it twice.
@@ -17,7 +17,7 @@ export function sessionParameters(row, config) {
     // Omit payment_method_types; eligible methods are managed in the Stripe Dashboard.
     consent_collection: { terms_of_service: 'required' },
     adaptive_pricing: { enabled: false },
-    custom_text: { submit: { message: '税込・送料込み。2026年11月5日から順次発送。以降の通常注文は入金確認後3営業日以内に発送。お客様都合の返品不可。不良品・誤配送は到着後7日以内にご連絡ください。' } },
+    custom_text: { submit: { message: '税込・送料込み。入金確認後3営業日以内に発送。お客様都合の返品不可。不良品・誤配送は到着後7日以内にご連絡ください。' } },
     integration_identifier: 'body_make_chips_sopnqvte',
   };
 }

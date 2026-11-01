@@ -4,7 +4,6 @@ export const CATALOG = Object.freeze({
   stock: Object.freeze({ bags: 30, amount: 10500, name: '30袋セット' }),
 });
 export const INITIAL_STOCK = 500;
-export const SHIPPING_START = '2026-11-05';
 
 export class CheckoutError extends Error {
   constructor(code, status = 400) { super(code); this.code = code; this.status = status; }

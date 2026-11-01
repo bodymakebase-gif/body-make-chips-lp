@@ -154,7 +154,7 @@ if (order) {
       const result = await api(`/order-status?session_id=${encodeURIComponent(sessionId)}`);
       if (result.paid && result.recorded) {
         heading.textContent = 'ご注文ありがとうございます。';
-        order.textContent = `${result.bags}袋・${result.amount.toLocaleString('ja-JP')}円（税込・送料込み）のお支払いを確認しました。2026年11月5日から順次発送します。それ以降の通常注文は入金確認後3営業日以内に発送します。`;
+        order.textContent = `${result.bags}袋・${result.amount.toLocaleString('ja-JP')}円（税込・送料込み）のお支払いを確認しました。入金確認後3営業日以内に発送します。`;
         forget(result.setId, result.requestId);
         checkButton.hidden = true;
       } else if (result.state === 'failed' || result.status === 'expired') {
