@@ -28,7 +28,7 @@ function boundedInteger(value, minimum, maximum) {
 
 export function diagnosticEvent(name, set, details = {}) {
   if (!events.has(name)) return null;
-  const params = { checkout_flow: 'confirm_v1' };
+  const params = { checkout_flow: 'auto_v2' };
   const setId = typeof set === 'string' ? set : set?.id;
   if (sets.has(setId)) params.checkout_set = setId;
   if (!details || typeof details !== 'object') return { name, params };

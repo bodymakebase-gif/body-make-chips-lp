@@ -1,5 +1,5 @@
-import { getAnalyticsContext, trackSetSelection, trackCheckoutStart, trackCheckoutDiagnostic } from './analytics.js?v=20261105';
-import { classifyCheckoutError } from './tracking/checkout-diagnostics.mjs?v=20261105';
+import { getAnalyticsContext, trackSetSelection, trackCheckoutStart, trackCheckoutDiagnostic } from './analytics.js?v=20261105-auto';
+import { classifyCheckoutError } from './tracking/checkout-diagnostics.mjs?v=20261105-auto';
 const report = (...args) => { try { trackCheckoutDiagnostic(...args); } catch {} };
 // Public configuration contains no Stripe credentials. Price and stock are enforced by the server.
 const configNode = document.querySelector('#sale-config');
@@ -104,9 +104,10 @@ if (dialog && config?.enabled) {
         throw Object.assign(new Error('invalid_response'), { code: 'invalid_response' });
       }
       for (const button of buyButtons) {
+        const set = config.sets.find(set => set.id === button.dataset.buySet);
         availability[button.dataset.buySet] = data.available[button.dataset.buySet] === true;
         button.disabled = !availability[button.dataset.buySet];
-        button.textContent = button.disabled ? 'ただいま在庫なし' : 'このセットを購入';
+        button.textContent = button.disabled ? 'ただいま在庫なし' : `${set.price.toLocaleString('ja-JP')}円で購入に進む`;
       }
     } catch (error) {
       report('checkout_availability_error', null, { stage: 'availability', issue: classifyCheckoutError(error), httpStatus: error.httpStatus });
@@ -125,17 +126,18 @@ if (dialog && config?.enabled) {
   dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
   dialog.querySelector('[data-checkout-close]').addEventListener('click', () => { if (!busy) dialog.close(); });
   for (const button of buyButtons) button.addEventListener('click', async () => {
+    if (dialog.open || busy) return;
     selected = config.sets.find(set => set.id === button.dataset.buySet);
     if (!selected || !availability[selected.id]) return;
     trackSetSelection(selected).catch(() => {});
     const thisGeneration = ++generation;
-    const target = journey = { set: selected, started: performance.now(), stage: 'verification', attempt: 0, redirected: false, exited: false };
-    const current = () => dialog.open && thisGeneration === generation && journey === target;
+    const target = journey = { set: selected, started: performance.now(), stage: 'verification', attempt: 0, autoAdvance: true, usedTokens: new Set(), redirected: false, exited: false };
+    const current = () => dialog.open && thisGeneration === generation && journey === target && !target.exited;
     dialog.querySelector('[data-checkout-name]').textContent = selected.name;
     dialog.querySelector('[data-checkout-quantity]').textContent = `15g × ${selected.quantity}袋`;
     dialog.querySelector('[data-checkout-total]').textContent = `${selected.price.toLocaleString('ja-JP')}円`;
-    message.textContent = '接続を確認しています…';
-    submit.disabled = true; token = ''; lastError = '';
+    message.textContent = '接続を確認しています。認証が終わると、お支払い画面へ自動で進みます。';
+    submit.disabled = true; submit.hidden = true; token = ''; lastError = '';
     dialog.showModal();
     diagnostic('checkout_dialog_open');
     verifyWait(target);
@@ -145,10 +147,15 @@ if (dialog && config?.enabled) {
       widget = window.turnstile.render(verification, {
         sitekey: config.turnstileSiteKey, action: 'checkout', theme: 'light', size: innerWidth < 380 ? 'compact' : 'normal',
         callback(value) {
-          if (!current() || busy) return;
+          if (!current() || busy || typeof value !== 'string' || !value || target.usedTokens.has(value)) return;
           clearTimeout(verifyTimer); target.stage = 'ready';
           diagnostic('checkout_verify_ready', { waitMs: elapsed(target.verifyStarted) }, target);
-          token = value; submit.disabled = false; message.textContent = lastError || '次の画面で配送先・お支払い方法を入力できます。';
+          token = value;
+          if (target.autoAdvance) void openCheckout();
+          else {
+            submit.disabled = false; submit.hidden = false;
+            message.textContent = lastError || '接続を確認できました。「もう一度試す」を押してください。';
+          }
         },
         'before-interactive-callback'() {
           if (current() && !busy) diagnostic('checkout_verify_challenge', { waitMs: elapsed(target.verifyStarted) }, target);
@@ -186,10 +193,13 @@ if (dialog && config?.enabled) {
       message.textContent = messages.verification_unavailable;
     }
   });
-  submit.addEventListener('click', async () => {
-    if (!selected || !token || busy) return;
+  async function openCheckout() {
+    if (!selected || !token || busy || !journey || !dialog.open || journey.exited || journey.redirected) return;
     const target = journey;
     const set = target.set, verificationToken = token;
+    // One purchase-button click authorizes one automatic attempt. A failed
+    // request must wait for an explicit retry, even if Turnstile succeeds again.
+    target.autoAdvance = false; target.usedTokens.add(verificationToken); token = '';
     const current = () => journey === target && dialog.open && !target.exited;
     const requestStarted = performance.now();
     target.stage = 'request'; target.attempt++;
@@ -197,7 +207,7 @@ if (dialog && config?.enabled) {
     requestTimer = setTimeout(() => {
       if (journey === target && busy && !target.redirected) diagnostic('checkout_request_slow', { waitMs: elapsed(requestStarted) }, target);
     }, 10000);
-    busy = true; submit.disabled = true; lastError = '';
+    busy = true; submit.disabled = true; submit.hidden = true; lastError = '';
     dialog.querySelector('[data-checkout-close]').disabled = true;
     message.textContent = 'お支払い画面を開いています…';
     try {
@@ -230,12 +240,13 @@ if (dialog && config?.enabled) {
       lastError = messages[error.code] || '通信を確認できませんでした。同じセットでもう一度お試しください。';
       message.textContent = lastError;
       busy = false; token = '';
-      submit.disabled = true;
+      submit.disabled = true; submit.hidden = false;
       dialog.querySelector('[data-checkout-close]').disabled = false;
       if (widget !== undefined) { verifyWait(target); window.turnstile.reset(widget); }
       if (error.code === 'out_of_stock') refresh();
     }
-  });
+  }
+  submit.addEventListener('click', () => { if (!submit.hidden) void openCheckout(); });
   refresh();
   window.addEventListener('pagehide', () => {
     if (journey && dialog.open && !journey.redirected && !journey.exited) {

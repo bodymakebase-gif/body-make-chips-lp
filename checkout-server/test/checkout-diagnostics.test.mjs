@@ -8,7 +8,7 @@ test('checkout diagnostics retain only approved labels and bounded diagnostic nu
     verificationCode: '600010',
   }), {
     name: 'checkout_request_error',
-    params: { checkout_flow: 'confirm_v1', checkout_set: 'trial', checkout_stage: 'request',
+    params: { checkout_flow: 'auto_v2', checkout_set: 'trial', checkout_stage: 'request',
       checkout_issue: 'verification_failed', checkout_wait_ms: 1543, checkout_attempt: 2,
       http_status: 403, verification_code: '600010' },
   });
@@ -21,7 +21,7 @@ test('arbitrary errors, customer data, URLs and session identifiers cannot enter
     requestId: secret, token: secret, email: secret, page_location: `https://example.com/${secret}`,
     checkout_flow: secret, checkout_set: 'trial', checkout_issue: secret,
   });
-  assert.deepEqual(result, { name: 'checkout_verify_error', params: { checkout_flow: 'confirm_v1', checkout_issue: 'unknown' } });
+  assert.deepEqual(result, { name: 'checkout_verify_error', params: { checkout_flow: 'auto_v2', checkout_issue: 'unknown' } });
   assert.equal(JSON.stringify(result).includes(secret), false);
   assert.equal(diagnosticEvent(secret, 'trial'), null);
   assert.equal(diagnosticEvent('purchase', 'trial'), null);
@@ -32,12 +32,12 @@ test('diagnostic numerical bounds do not admit NaN, infinity or arbitrary numeri
   for (const value of values) {
     assert.deepEqual(diagnosticEvent('checkout_verify_slow', null, {
       waitMs: value, attempt: value, httpStatus: value,
-    }).params, { checkout_flow: 'confirm_v1' });
+    }).params, { checkout_flow: 'auto_v2' });
   }
   assert.deepEqual(diagnosticEvent('checkout_verify_slow', 'desk', { waitMs: -1, attempt: 0 }).params,
-    { checkout_flow: 'confirm_v1', checkout_set: 'desk', checkout_wait_ms: 0, checkout_attempt: 1 });
+    { checkout_flow: 'auto_v2', checkout_set: 'desk', checkout_wait_ms: 0, checkout_attempt: 1 });
   assert.deepEqual(diagnosticEvent('checkout_request_slow', 'stock', { waitMs: 900000, attempt: 99 }).params,
-    { checkout_flow: 'confirm_v1', checkout_set: 'stock', checkout_wait_ms: 300000, checkout_attempt: 20 });
+    { checkout_flow: 'auto_v2', checkout_set: 'stock', checkout_wait_ms: 300000, checkout_attempt: 20 });
   for (const httpStatus of [0, 99, 600, 403.5]) {
     assert.equal(Object.hasOwn(diagnosticEvent('checkout_request_error', 'trial', { httpStatus }).params, 'http_status'), false);
   }
@@ -49,11 +49,11 @@ test('diagnostic numerical bounds do not admit NaN, infinity or arbitrary numeri
 test('known checkout stages work without a selected set and malformed details are ignored', () => {
   for (const details of [undefined, null, 123, 'private', false]) {
     assert.deepEqual(diagnosticEvent('checkout_availability_error', undefined, details), {
-      name: 'checkout_availability_error', params: { checkout_flow: 'confirm_v1' },
+      name: 'checkout_availability_error', params: { checkout_flow: 'auto_v2' },
     });
   }
   assert.deepEqual(diagnosticEvent('checkout_availability_error', undefined, { stage: 'availability', issue: 'mode_mismatch' }).params,
-    { checkout_flow: 'confirm_v1', checkout_stage: 'availability', checkout_issue: 'mode_mismatch' });
+    { checkout_flow: 'auto_v2', checkout_stage: 'availability', checkout_issue: 'mode_mismatch' });
 });
 
 test('failure classification uses approved codes or names and never exception messages', () => {

@@ -13,6 +13,7 @@
 .checkout-message { min-height: 3.6em; margin: 12px 0; font-size: .9rem; }
 .checkout-submit, .order-check { display: block; width: 100%; min-height: 54px; border: 1px solid #829d30; border-radius: 3px; padding: 12px; background: #b7e226; color: #162406; font: inherit; font-weight: 800; cursor: pointer; }
 .checkout-submit:disabled { background: #dfe4d1; color: #707761; border-color: #c8ceba; cursor: default; }
+.checkout-submit[hidden] { display: none; }
 .order-check { width: auto; margin: 24px 0; padding-inline: 30px; }
 .order-check[hidden] { display: none; }
 .checkout-dialog :focus-visible, .order-check:focus-visible { outline: 3px solid #527411; outline-offset: 4px; }

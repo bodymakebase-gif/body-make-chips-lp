@@ -33,7 +33,7 @@
     </script>
     <link rel="stylesheet" href="./styles.css?v=20260929-09" />
     <link rel="stylesheet" href="./prelaunch.css?v=20261002-15d" />
-    <link rel="stylesheet" href="./checkout.css?v=20261020" />
+    <link rel="stylesheet" href="./checkout.css?v=20261105-auto" />
   </head>
   <body class="lp-v2 lp-prelaunch">
     <a class="skip-link" href="#main-content">本文へ移動</a>
@@ -225,12 +225,13 @@
       <p data-checkout-quantity></p>
       <p class="checkout-dialog__total"><span>合計（税込・送料込み）</span><strong data-checkout-total></strong></p>
       <p class="checkout-dialog__conditions">日本国内へお届けします。入金確認後3営業日以内に発送します。</p>
+      <p class="checkout-dialog__conditions">認証後、Stripeのお支払い画面へ自動で進みます。購入は次の画面で「支払う」を押すと確定します。</p>
       <p class="checkout-dialog__conditions">お客様都合の返品不可。不良品・誤配送は到着後7日以内にご連絡ください。<a href="./legal.html#returns" target="_blank" rel="noopener">販売条件</a>・<a href="./privacy.html" target="_blank" rel="noopener">個人情報の取り扱い</a></p>
       <div class="checkout-verification" data-checkout-verification></div>
       <p class="checkout-message" data-checkout-message role="status" aria-live="polite"></p>
-      <button type="button" class="checkout-submit" data-checkout-submit disabled>お支払いへ進む</button>
+      <button type="button" class="checkout-submit" data-checkout-submit disabled hidden>もう一度試す</button>
     </dialog>
     <script src="./script.js?v=20261020-checkout" defer></script>
-  <script type="module" src="./checkout-client.js?v=20261105-diagnostics"></script>
+  <script type="module" src="./checkout-client.js?v=20261105-auto"></script>
   </body>
 </html>

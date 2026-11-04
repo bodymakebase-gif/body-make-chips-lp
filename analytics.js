@@ -1,5 +1,5 @@
 import { cleanLocation, ecommerceItem } from './tracking/analytics-core.mjs';
-import { diagnosticEvent } from './tracking/checkout-diagnostics.mjs?v=20261105';
+import { diagnosticEvent } from './tracking/checkout-diagnostics.mjs?v=20261105-auto';
 // Only allowlisted event data is sent. No checkout session tokens, names, addresses or emails.
 let settings, active = false;
 const CHOICE_KEY = 'bmc-analytics-choice';
