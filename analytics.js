@@ -1,4 +1,5 @@
 import { cleanLocation, ecommerceItem } from './tracking/analytics-core.mjs';
+import { diagnosticEvent } from './tracking/checkout-diagnostics.mjs?v=20261105';
 // Only allowlisted event data is sent. No checkout session tokens, names, addresses or emails.
 let settings, active = false;
 const CHOICE_KEY = 'bmc-analytics-choice';
@@ -82,6 +83,17 @@ export const analyticsReady = (async () => {
 
 export async function trackSetSelection(set) {
   if (await analyticsReady) emit('select_item', { item_list_id: 'lp_sets', item_list_name: 'セット一覧', items: [ecommerceItem(set)] });
+}
+// Diagnostics never delay checkout. pagehide can only use an already active tag.
+export function trackCheckoutDiagnostic(name, set, details) {
+  try {
+    const event = diagnosticEvent(name, set, details);
+    if (!event) return;
+    if (active) emit(event.name, event.params);
+    else if (name !== 'checkout_page_exit') analyticsReady.then(ready => {
+      if (ready) emit(event.name, event.params);
+    }).catch(() => {});
+  } catch { /* Measurement must never interrupt a purchase. */ }
 }
 export async function getAnalyticsContext() {
   if (read(CHOICE_KEY) === 'denied' || read(INTERNAL_KEY) === '1' || navigator.globalPrivacyControl === true) return null;
