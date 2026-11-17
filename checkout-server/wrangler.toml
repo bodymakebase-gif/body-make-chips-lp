@@ -22,9 +22,17 @@ PRICE_STOCK = "price_1UOY1N2KjzkCozaC5SjItp3X"
 name = "INVENTORY"
 class_name = "Inventory"
 
+[[durable_objects.bindings]]
+name = "REVIEWS"
+class_name = "Reviews"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Inventory"]
+
+[[migrations]]
+tag = "v2-reviews"
+new_sqlite_classes = ["Reviews"]
 
 [observability]
 enabled = true

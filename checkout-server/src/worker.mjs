@@ -7,6 +7,8 @@ import { AdminAuthStore } from './admin-auth.mjs';
 import { adminAsset, adminApi, adminJson, validateAdminRequest } from './admin.mjs';
 import { PurchaseAnalytics, analyticsDefaultAllowed } from './analytics.mjs';
 import { FulfillmentStore, FulfillmentService } from './fulfillment.mjs';
+import { ReviewsStore, reviewApi } from './reviews.mjs';
+import { publicReviewResponse, relayAdminReview } from './reviews-gateway.mjs';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 const configFor = env => ({
@@ -84,6 +86,8 @@ export default {
         const stub = env.INVENTORY.getByName('body-make-chips-first-batch');
         return stub.fetch('https://inventory.internal/webhook', { method: 'POST', body: JSON.stringify(event) });
       }
+      const reviewsResponse = await publicReviewResponse(request, env);
+      if (reviewsResponse) return reviewsResponse;
       if (!allowed) return json({ error: 'origin_not_allowed' }, 403);
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
         'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -147,7 +151,8 @@ export class Inventory extends DurableObject {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith('/admin/api/')) {
-        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson, undefined, this.analytics, this.fulfillment);
+        return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson, undefined, this.analytics, this.fulfillment,
+          (req, actor) => relayAdminReview(req, this.env, actor));
       }
       if (url.pathname === '/availability') return json({ available: this.store.status(), remainingBags: Math.max(0, this.store.available()), livemode: this.env.STRIPE_MODE === 'live' });
       if (url.pathname === '/order-status') {
@@ -192,5 +197,20 @@ export class Inventory extends DurableObject {
     await this.service.reconcile();
     try { await this.analytics.flush(); } catch { console.error('analytics_delivery_deferred'); }
     if (!this.store.pending().length && !this.analytics.hasPending()) await this.ctx.storage.deleteAlarm();
+  }
+}
+
+export class Reviews extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.store = new ReviewsStore(ctx.storage);
+  }
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+    return reviewApi(request, this.store, {
+      admin: path.startsWith('/admin/api/'),
+      actor: decodeURIComponent(request.headers.get('x-review-actor') || ''),
+      rateKey: request.headers.get('x-review-rate-key') || '',
+    });
   }
 }

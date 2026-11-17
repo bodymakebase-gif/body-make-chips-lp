@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="./styles.css?v=20260929-09" />
     <link rel="stylesheet" href="./prelaunch.css?v=20261002-15d" />
     <link rel="stylesheet" href="./checkout.css?v=20261105-auto" />
+    <link rel="stylesheet" href="./reviews.css?v=20261118-no-heading" />
   </head>
   <body class="lp-v2 lp-prelaunch">
     <a class="skip-link" href="#main-content">本文へ移動</a>
@@ -42,7 +43,7 @@
         <a class="site-logo" href="#top" aria-label="BODY-MAKE CHIPS トップへ">BODY-MAKE CHIPS</a>
         <button class="menu-toggle" type="button" aria-label="メニューを開く" aria-controls="site-nav" aria-expanded="false"><span></span><span></span></button>
         <nav id="site-nav" class="site-nav" aria-label="メインナビゲーション">
-          <a href="#about">商品について</a><a href="#nutrition-details">栄養成分</a><a href="#lineup">セットを見る</a>
+          <a href="#about">商品について</a><a href="#nutrition-details">栄養成分</a><a href="#reviews">レビュー</a><a href="#lineup">セットを見る</a>
         </nav>
         <a class="header-cta" href="#lineup">{{trialName}}を見る <span aria-hidden="true">→</span></a>
       </div>
@@ -166,6 +167,49 @@
           <figure class="story__visual reveal"><div class="story-photo"><img src="./assets/story-real-surface-20261015.webp" width="1122" height="1402" loading="lazy" alt="試作を重ねて生まれたBODY-MAKE CHIPS。中央に黒いパッケージとキクイモチップスを配置した盛り付けイメージ" /><p class="story-photo__caption">BODY-MAKE CHIPS / USUSHIO</p></div><figcaption class="image-note">実物写真をもとにした合成イメージです。</figcaption></figure>
         </div>
       </section>
+      <section id="reviews" class="section section--paper reviews" aria-label="レビュー">
+        <div class="container">
+          <div class="reviews__heading">
+            <a class="reviews-button reviews-button--dark" href="#reviews-form-panel" data-review-open aria-controls="reviews-form-panel" aria-expanded="false">レビューを書く <span aria-hidden="true">↗</span></a>
+          </div>
+          <div id="reviews-summary" class="reviews-summary" aria-label="公開されているレビューの評価" hidden></div>
+          <div class="reviews__toolbar"><p id="reviews-count">みなさまのレビュー</p><label class="reviews__sort-label" for="reviews-sort">並び順 <select id="reviews-sort"><option value="helpful">参考になった順</option><option value="newest">新しい順</option></select></label></div>
+          <div id="reviews-status" class="reviews-status" role="status" aria-live="polite"><p>レビューを読み込んでいます。</p></div>
+          <div id="reviews-list" class="reviews-list" aria-label="レビュー一覧"></div>
+          <div class="reviews__pagination"><button id="reviews-more" class="reviews-button" type="button" hidden>もっとレビューを見る <span aria-hidden="true">↓</span></button></div>
+          <details id="reviews-form-panel" class="review-form-panel">
+            <summary>レビューを書く <span aria-hidden="true">＋</span></summary>
+            <div class="review-form-panel__body">
+              <form id="review-form" class="review-form">
+                <fieldset class="review-form__fields" id="review-form-fields">
+                  <legend class="sr-only">レビューの内容</legend>
+                  <fieldset class="review-rating"><legend>評価 <span class="review-required">必須</span></legend><div class="review-rating__options">
+                    <label><input type="radio" name="rating" value="1" required /><svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path d="m12 2.5 2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96Z" /></svg><span class="sr-only">1点</span></label>
+                    <label><input type="radio" name="rating" value="2" /><svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path d="m12 2.5 2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96Z" /></svg><span class="sr-only">2点</span></label>
+                    <label><input type="radio" name="rating" value="3" /><svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path d="m12 2.5 2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96Z" /></svg><span class="sr-only">3点</span></label>
+                    <label><input type="radio" name="rating" value="4" /><svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path d="m12 2.5 2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96Z" /></svg><span class="sr-only">4点</span></label>
+                    <label><input type="radio" name="rating" value="5" /><svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path d="m12 2.5 2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96Z" /></svg><span class="sr-only">5点</span></label>
+                  </div></fieldset>
+                  <label class="review-form__label" for="review-name">お名前・ニックネーム <span class="review-required">必須</span></label><input id="review-name" name="name" type="text" required maxlength="40" autocomplete="nickname" placeholder="公開されるお名前（40文字まで）" />
+                  <label class="review-form__label" for="review-comment">感想 <span class="review-required">必須</span></label><textarea id="review-comment" name="comment" required minlength="5" maxlength="2000" rows="5" placeholder="味や食感、食べた場面など、率直な感想をどうぞ。（5〜2,000文字）" aria-describedby="review-comment-help"></textarea><p id="review-comment-help" class="review-form__hint">住所・電話番号・メールアドレスなど、個人情報は書かないでください。</p>
+                  <div class="review-form__label">写真 <span class="review-optional">任意・3枚まで</span></div>
+                  <div id="review-image-drop" class="review-image-drop" tabindex="0" role="group" aria-label="写真の追加。ファイルを選ぶほか、ここに写真を貼り付けたり、ドロップできます。" aria-describedby="review-image-help"><input id="review-images" name="images" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple /><label class="reviews-button review-image-drop__choose" for="review-images">写真を選ぶ <span aria-hidden="true">＋</span></label><p>ここに画像を貼り付け・ドロップもできます</p><p id="review-image-help">JPEG・PNG・WebP ／ 1枚10MBまで</p></div>
+                  <div id="review-image-previews" class="review-image-previews" aria-label="追加した写真"></div><p id="review-image-status" class="review-form__hint" role="status" aria-live="polite"></p>
+                  <div class="review-honeypot" aria-hidden="true"><label for="review-website">この欄は入力しないでください</label><input id="review-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
+                  <label class="review-form__consent"><input name="consent" type="checkbox" required /><span>お名前・感想・写真がこのサイトに公開されることに同意します。</span></label>
+                  <details class="review-form__privacy"><summary>投稿にあたって</summary><p>写真は、ご自身で撮影したものや掲載の許可を得たものをお使いください。顔や個人情報が写り込んでいないかご確認ください。投稿は内容を確認した後に公開します。評価の高低を理由に掲載を選ぶことはありません。個人情報や誹謗中傷、商品と関係のない内容は掲載できない場合があります。</p></details>
+                </fieldset>
+                <div id="review-verification" class="review-verification"></div>
+                <p id="review-submit-status" class="review-submit-status" role="status" aria-live="polite" tabindex="-1"></p>
+                <button id="review-submit" class="reviews-button reviews-button--dark" type="submit">レビューを送信する <span aria-hidden="true">→</span></button>
+                <p class="review-form__footnote">送信後もこのページでお買い物を続けられます。</p>
+              </form>
+            </div>
+          </details>
+          <noscript><p class="reviews-status">レビューの閲覧・投稿にはJavaScriptを有効にしてください。</p></noscript>
+        </div>
+      </section>
+
       <section id="lineup" class="section section--paper lineup" aria-labelledby="lineup-title" tabindex="-1">
         <div class="container">
           <div class="lineup__head reveal"><p class="section-label section-label--dark">LINEUP</p><h2 id="lineup-title">まずは３袋から。<br /><span class="phrase">サクサクを、</span><span class="phrase">確かめてほしい。</span></h2><p>{{lineupIntro}}</p></div>
@@ -232,6 +276,7 @@
       <button type="button" class="checkout-submit" data-checkout-submit disabled hidden>もう一度試す</button>
     </dialog>
     <script src="./script.js?v=20261020-checkout" defer></script>
-  <script type="module" src="./checkout-client.js?v=20261105-auto"></script>
+  <script type="module" src="./checkout-client.js?v=20261118-reviews"></script>
+  <script type="module" src="./reviews-client.js?v=20261118-simple"></script>
   </body>
 </html>

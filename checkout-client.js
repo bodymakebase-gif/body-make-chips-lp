@@ -52,13 +52,14 @@ const messages = {
 let turnstileLoading;
 function loadTurnstile() {
   if (window.turnstile?.render) return Promise.resolve();
+  if (window.__bmcTurnstileReady) return window.__bmcTurnstileReady;
   if (!turnstileLoading) turnstileLoading = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     let settled = false;
     const finish = code => {
       if (settled) return;
       settled = true; clearTimeout(timeout);
-      if (code) { script.remove(); turnstileLoading = null; reject(Object.assign(new Error(code), { code })); }
+      if (code) { script.remove(); turnstileLoading = null; window.__bmcTurnstileReady = null; reject(Object.assign(new Error(code), { code })); }
       else resolve();
     };
     const timeout = setTimeout(() => finish('script_timeout'), 20000);
@@ -68,6 +69,7 @@ function loadTurnstile() {
     script.onerror = () => finish('script_load');
     document.head.append(script);
   });
+  window.__bmcTurnstileReady = turnstileLoading;
   return turnstileLoading;
 }
 

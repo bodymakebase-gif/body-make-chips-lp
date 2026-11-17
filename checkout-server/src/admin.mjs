@@ -1,5 +1,6 @@
 import { CheckoutError } from './catalog.mjs';
 import { cookieToken, sessionCookie } from './admin-auth.mjs';
+import { isAdminReviewPath } from './reviews-gateway.mjs';
 import html from './admin/index.html';
 import css from './admin/admin.css';
 import js from './admin/admin.js';
@@ -7,7 +8,7 @@ import js from './admin/admin.js';
 const headers = {
   'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex, nofollow, noarchive',
-  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
 };
 export const adminJson = (data, status = 200, extra = {}) => Response.json(data, { status, headers: { ...headers, ...extra } });
 export function adminAsset(path, mode) {
@@ -29,7 +30,7 @@ export function validateAdminRequest(request, mode) {
   if (!['GET', 'POST'].includes(request.method)) throw new CheckoutError('method_not_allowed', 405);
 }
 
-export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null, fulfillment = null) {
+export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null, fulfillment = null, reviews = null) {
   const url = new URL(request.url);
   const token = cookieToken(request);
   if (url.pathname === '/admin/api/login' && request.method === 'POST') {
@@ -42,6 +43,13 @@ export async function adminApi(request, store, auth, keyHash, readJson, now = Ma
     return adminJson({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
   }
   const actor = await auth.authenticate(token, keyHash, now);
+  if (isAdminReviewPath(url.pathname)) {
+    if (!reviews) throw new CheckoutError('reviews_unavailable', 503);
+    const response = await reviews(request, actor.actor);
+    const extra = new Headers(response.headers);
+    for (const [key, value] of Object.entries(headers)) extra.set(key, value);
+    return new Response(response.body, { status: response.status, headers: extra });
+  }
   if (url.pathname === '/admin/api/orders' && request.method === 'GET') {
     return adminJson(fulfillment.store.list(url.searchParams.get('status') || 'unshipped', Number(url.searchParams.get('after') || 0)));
   }

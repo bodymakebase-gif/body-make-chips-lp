@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫・注文管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫・注文・レビュー管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
 <body data-environment="__ENVIRONMENT__">
 <header class="topbar"><a class="brand" href="/admin/">BODY-MAKE CHIPS<span>STOCK ROOM</span></a><span id="environment" class="badge">在庫管理</span><button id="logout" class="quiet" hidden>ログアウト</button></header>
 <main>
 <section id="login-panel" class="login panel">
-  <p class="eyebrow">FOR THE MAKER</p><h1>在庫も、注文も。<br>手元で管理。</h1><p class="intro">試供品の取り分けから、発送の記録まで。<br>LPとつながる、あなたの管理室です。</p>
+  <p class="eyebrow">FOR THE MAKER</p><h1>在庫も、声も。<br>手元で管理。</h1><p class="intro">注文・発送の記録から、レビューの掲載まで。<br>LPとつながる、あなたの管理室です。</p>
   <form id="login-form"><label for="admin-key">管理キー</label><input id="admin-key" type="password" autocomplete="current-password" required spellcheck="false" autocapitalize="none" placeholder="専用の管理キーを貼り付け"><button class="primary" type="submit" id="login-button">管理画面を開く <span aria-hidden="true">→</span></button></form>
   <p id="login-message" class="message" role="status"></p><p class="small">初回の管理キーは、お渡しした「在庫管理_ログイン情報.txt」にあります。ログインは8時間有効です。</p>
 </section>
 <div id="dashboard" hidden>
-  <nav class="admin-tabs" aria-label="管理メニュー"><button id="inventory-tab" aria-current="page" aria-controls="inventory-panel">在庫</button><button id="orders-tab" aria-controls="orders-panel">注文・発送</button></nav>
+  <nav class="admin-tabs" aria-label="管理メニュー"><button id="inventory-tab" aria-current="page" aria-controls="inventory-panel">在庫</button><button id="orders-tab" aria-controls="orders-panel">注文・発送</button><button id="reviews-tab" aria-controls="reviews-panel">レビュー</button></nav>
   <div id="inventory-panel">
   <div class="page-heading"><div><p class="eyebrow">YOUR INVENTORY</p><h1>在庫管理</h1><p>取り分けたら、ここに記録。</p></div><button id="refresh" class="secondary">最新の在庫に更新 <span aria-hidden="true">↻</span></button></div>
   <p id="status" class="message" role="status" aria-live="polite"></p>
@@ -49,6 +49,28 @@
     <div id="orders-list" class="panel orders-list" aria-live="polite"></div><button id="orders-more" class="secondary" hidden>次の25件を表示</button>
     <p class="small order-footnote">荷物を配送会社に渡したら「発送済み」にして完了です。返金・キャンセルはStripeで確認してください。</p>
   </section>
+  <section id="reviews-panel" aria-labelledby="reviews-title" hidden>
+    <div class="page-heading"><div><p class="eyebrow">VOICES &amp; REVIEWS</p><h1 id="reviews-title">レビュー管理</h1><p>届いた声を確認し、LPへ掲載。</p></div><button id="review-new" class="secondary" type="button">レビューを追加 ＋</button></div>
+    <p class="muted">管理者は件数の制限なく登録できます。引用元や商品提供の有無は、管理用の記録として保存します。</p>
+    <p id="reviews-message" class="message" role="status" aria-live="polite"></p>
+    <section id="review-editor" class="panel review-editor" aria-labelledby="review-editor-title" hidden>
+      <div class="section-heading"><div><p class="eyebrow">REVIEW EDITOR</p><h2 id="review-editor-title">レビューを追加</h2></div><button id="review-editor-close" class="text-button" type="button">閉じる</button></div>
+      <p class="small">掲載する本人の感想、または利用条件を確認したレビューを登録してください。評価は原文に沿って入力します。</p>
+      <form id="review-admin-form"><fieldset id="review-admin-fields"><legend class="sr-only">掲載するレビュー</legend>
+        <div class="review-editor-grid"><div><label for="review-admin-name">表示名</label><input id="review-admin-name" name="name" required maxlength="40" autocomplete="off" placeholder="例：さくらさん"></div><div><label for="review-admin-rating">星評価</label><select id="review-admin-rating" name="rating" required><option value="">評価を選択</option><option value="5">★★★★★　5</option><option value="4">★★★★☆　4</option><option value="3">★★★☆☆　3</option><option value="2">★★☆☆☆　2</option><option value="1">★☆☆☆☆　1</option></select></div></div>
+        <label for="review-admin-comment">コメント</label><textarea id="review-admin-comment" name="comment" required minlength="1" maxlength="2000" rows="6" placeholder="味・食感・食べた場面など、元の感想を入力"></textarea><p class="small review-character-count"><span id="review-admin-comment-count">0</span> / 2,000文字</p>
+        <div class="review-editor-grid"><div><label for="review-admin-source-type">レビューの種類</label><select id="review-admin-source-type" name="sourceType" required><option value="">種類を選択</option><option value="customer">利用者の感想（管理者掲載）</option><option value="monitor">商品提供モニター</option><option value="quoted">外部レビューの引用</option><option value="owner">自分自身の感想（管理者）</option></select></div><div><label for="review-admin-date">元の投稿日 <span class="optional">任意</span></label><input id="review-admin-date" name="reviewedAt" type="date"></div></div>
+        <label for="review-admin-source-name">掲載元・モニター名 <span id="review-source-required" class="optional">任意</span></label><input id="review-admin-source-name" name="sourceName" maxlength="100" placeholder="例：モニターステーション"><label for="review-admin-source-url">元のレビューのURL <span class="optional">任意</span></label><input id="review-admin-source-url" name="sourceUrl" type="url" maxlength="2048" pattern="https://.*" placeholder="https://…"><p class="small">URLを載せる場合は https:// から入力します。</p>
+        <div id="review-admin-drop" class="review-upload" tabindex="0" aria-label="画像を貼り付ける場所"><label for="review-admin-images">画像を追加 <span class="optional">任意・3枚まで</span></label><input id="review-admin-images" type="file" accept="image/jpeg,image/png,image/webp" multiple><p class="small">画像を選ぶほか、ここへドラッグ・ドロップ、またはコピーした画像を貼り付けられます。JPEG・PNG・WebPに対応し、保存時に軽くします。</p><div id="review-admin-previews" class="review-image-previews"></div><p id="review-admin-image-message" class="message" role="status"></p></div>
+        <div class="review-editor-grid"><div><label for="review-admin-status">掲載状態</label><select id="review-admin-status" name="status"><option value="published">公開する</option><option value="pending">承認待ちで保存</option><option value="hidden">非公開で保存</option></select></div></div>
+        <label class="check-label review-permission"><input id="review-admin-permission" type="checkbox" required><span>投稿者本人の感想、または本文・画像を掲載できる条件を確認済みです。</span></label>
+        <div class="review-editor-actions"><button id="review-admin-save" type="submit" class="primary">レビューを保存する <span aria-hidden="true">→</span></button><button id="review-editor-cancel" type="button" class="secondary">キャンセル</button></div>
+      </fieldset></form>
+      <p id="review-admin-error" class="message" role="alert"></p><div id="review-admin-retry-box" class="warning" hidden><p>通信が途切れ、保存結果を確認できません。同じ登録番号で確認します。</p><button id="review-admin-retry" class="secondary" type="button">保存結果を確認する</button></div>
+    </section>
+    <div class="review-management-toolbar"><div class="review-status-filters" aria-label="レビューの掲載状態"><button class="text-button" type="button" data-review-filter="pending" aria-pressed="true">承認待ち <span id="review-count-pending">—</span></button><button class="text-button" type="button" data-review-filter="published" aria-pressed="false">公開中 <span id="review-count-published">—</span></button><button class="text-button" type="button" data-review-filter="hidden" aria-pressed="false">非公開 <span id="review-count-hidden">—</span></button><button class="text-button" type="button" data-review-filter="all" aria-pressed="false">すべて</button></div><button id="reviews-refresh" class="secondary" type="button">一覧を更新 ↻</button></div>
+    <p id="review-public-summary" class="small"></p><div id="reviews-list" class="review-admin-list" aria-live="polite"></div><button id="reviews-more" class="secondary" type="button" hidden>次のレビューを表示</button>
+  </section>
   <footer>BODY-MAKE CHIPS / 管理者専用<br><span>表示中の一覧は30秒ごとに更新します。</span></footer>
 </div>
 </main>
@@ -74,4 +96,5 @@
   </div>
   <div id="order-retry-box" class="warning" hidden><p>通信が途切れ、登録結果を確認できません。同じ番号で確認するため、二重には登録されません。</p><button id="order-retry" class="secondary">登録結果を確認</button></div>
 </dialog>
+<dialog id="review-delete-dialog" aria-labelledby="review-delete-title"><button id="review-delete-close" class="close" type="button" aria-label="削除の確認を閉じる">×</button><p class="eyebrow">DELETE REVIEW</p><h2 id="review-delete-title">このレビューを削除しますか？</h2><p id="review-delete-summary" class="muted"></p><p class="small">本文・画像・参考になった件数を削除します。掲載を止めるだけの場合は「非公開」を選んでください。</p><p id="review-delete-message" class="message" role="alert"></p><div class="dialog-actions"><button id="review-delete-cancel" class="secondary" type="button">戻る</button><button id="review-delete-confirm" class="primary review-danger" type="button">削除する</button></div></dialog>
 </body></html>
