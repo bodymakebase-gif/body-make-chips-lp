@@ -119,7 +119,7 @@ async function normalize(input, { admin = false, existing = null } = {}) {
   const comment = text(fallback('comment', 'comment'), REVIEW_LIMITS.comment, true, true);
   const rating = fallback('rating', 'rating', 0);
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) fail('invalid_review_rating');
-  const status = admin ? fallback('status', 'status', 'published') : 'pending';
+  const status = admin ? fallback('status', 'status', 'published') : 'published';
   const sourceType = admin ? fallback('sourceType', 'source_type', 'owner') : 'customer';
   if (!statuses.has(status) || !sources.has(sourceType)) fail();
   const sourceName = admin ? text(fallback('sourceName', 'source_name'), 100) : '';
@@ -167,6 +167,10 @@ export class ReviewsStore {
       CREATE TABLE IF NOT EXISTS review_rate_limits (bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at INTEGER NOT NULL);`);
   }
   raw(id) { return this.sql.exec('SELECT * FROM reviews WHERE id=?', id).toArray()[0]; }
+  creationResult(id, duplicate) {
+    const row = this.raw(id);
+    return { id, status: row?.status === 'published' ? 'published' : row?.status === 'pending' ? 'pending' : 'received', duplicate };
+  }
   item(row, { admin = false, visitorId = '' } = {}) {
     if (!row) fail('review_not_found', 404);
     const imageRows = this.sql.exec('SELECT id FROM review_images WHERE review_id=? ORDER BY position,id', row.id).toArray();
@@ -241,12 +245,14 @@ export class ReviewsStore {
     const id = uuid(input.submissionId), visitorId = admin ? '' : await digest(uuid(input.visitorId));
     if (!admin && (input.consent !== true || (input.website !== undefined && input.website !== ''))) fail('review_consent_required');
     const data = await normalize(input, { admin });
-    const hash = await fingerprint({ ...data, visitorId, admin });
+    // Keep the original public request fingerprint stable across the publication-policy change.
+    // A retry of an older pending submission must return that row without approving or duplicating it.
+    const hash = await fingerprint({ ...data, status: admin ? data.status : 'pending', visitorId, admin });
     const now = this.clock();
     return this.storage.transactionSync(() => {
       if (this.priorOperation(id, 'create', id, hash)) {
         if (admin) return { item: this.item(this.raw(id), { admin: true }), duplicate: true };
-        return { id, status: 'pending', duplicate: true };
+        return this.creationResult(id, true);
       }
       if (this.raw(id)) fail('request_conflict', 409);
       if (!admin) {
@@ -265,7 +271,7 @@ export class ReviewsStore {
       this.sql.exec('DELETE FROM review_rate_limits WHERE reset_at<=?', now);
       // Keep the daily limit even after moderation/deletion, without retaining names or IP addresses.
       this.sql.exec('DELETE FROM review_submitters WHERE last_submit<?', now - 2 * 86400);
-      return admin ? { item: this.item(this.raw(id), { admin: true }) } : { id, status: 'pending', duplicate: false };
+      return admin ? { item: this.item(this.raw(id), { admin: true }) } : this.creationResult(id, false);
     });
   }
   async update(id, input, { actor = '' } = {}) {

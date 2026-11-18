@@ -395,6 +395,19 @@ async function startReviews() {
     event.preventDefault(); panel.open = true; openReviewButton.setAttribute('aria-expanded', 'true'); panel.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     setTimeout(() => form.querySelector('input[name=rating]')?.focus({ preventScroll: true }), 150);
   });
+  function showSubmissionResult(result) {
+    const messages = {
+      published: 'レビューを公開しました。ありがとうございます。',
+      pending: 'レビューは受付済みです。現在は確認待ちです。\n公開されるまで、一覧や平均評価には反映されません。',
+      received: 'このレビューは受付済みです。現在は公開一覧に表示されていません。',
+    };
+    submitStatus.textContent = messages[result.status];
+    submitStatus.classList.add('is-success'); submitStatus.focus({ preventScroll: true });
+    if (result.status === 'published') {
+      // A failed list read must never turn a confirmed write into another POST.
+      void loadReviews(1).catch(() => showListStatus('レビューは公開済みです。一覧を更新できなかったため、もう一度読み込んでください。', () => loadReviews(1)));
+    }
+  }
   form.addEventListener('submit', async event => {
     event.preventDefault(); if (submitting || processingImages) return;
     let payload = uncertainPayload;
@@ -407,22 +420,28 @@ async function startReviews() {
     }
     submitting = true; fields.disabled = true; submit.disabled = true; submitStatus.classList.remove('is-success');
     submit.textContent = '接続を確認しています…'; submitStatus.textContent = '接続を確認しています。確認欄が表示された場合は操作してください。';
-    let sent = false;
+    let sent = false, accepted = false;
     try {
       const token = await verificationToken('review_submit', $('review-verification'));
       submit.textContent = '送信しています…'; submitStatus.textContent = 'レビューを送信しています。このままお待ちください。';
       sent = true;
       const result = await api('/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, turnstileToken: token }) });
-      if (!result.id || result.status !== 'pending') throw new Error('invalid_response');
+      if (result.id !== payload.submissionId || !['published', 'pending', 'received'].includes(result.status)) throw new Error('invalid_response');
+      accepted = true;
       uncertainPayload = null; submissionId = uuid(); attachments = []; form.reset(); renderPreviews(); imageStatus.textContent = '';
-      submitStatus.textContent = 'レビューを受け付けました。ありがとうございます。\n内容を確認した後に公開します。公開まで、この一覧や評価には反映されません。';
-      submitStatus.classList.add('is-success'); submitStatus.focus({ preventScroll: true });
+      showSubmissionResult(result);
     } catch (error) {
       // A lost response may have followed a successful write. Retry the exact
       // payload and submissionId, keeping the entered content visible and intact.
-      if (sent && (!error.httpStatus || error.httpStatus >= 500)) uncertainPayload = payload;
-      else if (error.httpStatus && error.httpStatus < 500) uncertainPayload = null;
-      submitStatus.textContent = `${messageFor(error)}${uncertainPayload ? '\n送信結果を確認できていません。入力内容を保ったまま、同じレビューを再確認できます。' : ''}`;
+      if (accepted) {
+        uncertainPayload = null;
+        submitStatus.textContent = 'レビューの送信は完了しました。表示を更新できなかったため、時間をおいて一覧をご確認ください。';
+        submitStatus.classList.add('is-success');
+      } else {
+        if (sent && (!error.httpStatus || error.httpStatus < 400 || error.httpStatus >= 500)) uncertainPayload = payload;
+        else if (error.httpStatus >= 400 && error.httpStatus < 500) uncertainPayload = null;
+        submitStatus.textContent = `${messageFor(error)}${uncertainPayload ? '\n送信結果を確認できていません。入力内容を保ったまま、同じレビューを再確認できます。' : ''}`;
+      }
     } finally {
       submitting = false; fields.disabled = Boolean(uncertainPayload); submit.disabled = false;
       submit.textContent = uncertainPayload ? '同じ内容で送信を再確認する →' : 'レビューを送信する →'; clearWidget($('review-verification'));

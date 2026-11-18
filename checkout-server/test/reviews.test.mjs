@@ -33,37 +33,70 @@ const req = (path, body, method = body === undefined ? 'GET' : 'POST') => new Re
   method, ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
 async function published(store, extra = {}) { return (await store.create(input(extra), admin)).item; }
 
-test('public submissions remain pending; only published reviews contribute to summary and images', async () => {
-  const { store } = setup(); const first = input({ images: [png] });
+test('public negative reviews publish immediately with images and votes; admin hide and delete remove public access', async () => {
+  const { store } = setup(); const first = input({ rating: 1, comment: 'まずい。私には合いませんでした。価格も高く感じます。', images: [png] });
   const result = await store.create(first, publicOptions);
-  assert.equal(result.status, 'pending'); assert.equal((await store.list()).items.length, 0);
-  assert.equal(store.summary().count, 0);
-  const pending = (await store.list({ admin: true })).items[0];
-  assert.equal(pending.adminPosted, false); assert.equal(pending.status, 'pending');
-  assert.match(pending.images[0].url, /^\/admin\/api\/review-images\//);
-  assert.throws(() => store.image(pending.id, pending.images[0].id), code('review_not_found'));
-  const image = store.image(pending.id, pending.images[0].id, { admin: true });
+  assert.deepEqual(result, { id: first.submissionId, status: 'published', duplicate: false });
+  const publicItems = (await store.list()).items;
+  assert.equal(publicItems.length, 1); assert.equal(publicItems[0].rating, 1); assert.equal(publicItems[0].comment, first.comment);
+  assert.equal(store.summary().count, 1); assert.equal(store.summary().average, 1);
+  const review = (await store.list({ admin: true, status: 'published' })).items[0];
+  assert.equal(review.adminPosted, false); assert.equal(review.status, 'published');
+  assert.match(review.images[0].url, /^\/admin\/api\/review-images\//);
+  const image = store.image(review.id, review.images[0].id, { admin: true });
   assert.equal(image.headers.get('Content-Type'), 'image/png');
   assert.equal(image.headers.get('Cross-Origin-Resource-Policy'), 'same-origin');
   assert.equal((await image.arrayBuffer()).byteLength, Buffer.from(png.data, 'base64').length);
-  await store.update(pending.id, { status: 'published', version: pending.version, operationId: randomUUID() });
-  const visible = (await store.list()).items[0];
-  assert.equal(store.summary().count, 1); assert.equal(store.summary().average, 4);
+  const visible = publicItems[0];
   assert.equal(visible.status, undefined); assert.equal(visible.createdBy, undefined);
   assert.match(visible.images[0].url, /^\/review-images\//);
   assert.equal(store.image(visible.id, visible.images[0].id).status, 200);
   assert.equal(store.image(visible.id, visible.images[0].id).headers.get('Cross-Origin-Resource-Policy'), 'cross-origin');
+  assert.equal((await store.vote(review.id, { visitorId: randomUUID(), helpful: true }, publicOptions)).helpfulCount, 1);
+  await store.update(review.id, { status: 'hidden', version: review.version, operationId: randomUUID() });
+  assert.equal((await store.list()).items.length, 0); assert.equal(store.summary().count, 0);
+  assert.throws(() => store.image(review.id, visible.images[0].id), code('review_not_found'));
+  await assert.rejects(store.vote(review.id, { visitorId: randomUUID(), helpful: true }, publicOptions), code('review_not_found'));
+  assert.deepEqual(await store.create(first, publicOptions), { id: review.id, status: 'received', duplicate: true });
+  assert.equal(store.raw(review.id).status, 'hidden');
+  const deletion = { operationId: randomUUID(), version: store.raw(review.id).version };
+  await store.delete(review.id, deletion); await store.delete(review.id, deletion);
+  assert.deepEqual(await store.create(first, publicOptions), { id: review.id, status: 'received', duplicate: true });
+  assert.equal(store.raw(review.id), undefined);
 });
 
 test('public create is retry-safe, cannot smuggle admin fields, and survives moderation or deletion', async () => {
-  const { store } = setup(); const first = input({ status: 'published', sourceType: 'owner', adminPosted: true });
+  const { store } = setup(); const first = input({ status: 'hidden', sourceType: 'owner', sourceName: '偽の出典', permissionConfirmed: true, adminPosted: true });
   const [a,b] = await Promise.all([store.create(first, publicOptions), store.create(first, publicOptions)]);
-  assert.equal(a.id, b.id); assert.equal((await store.list({ admin: true })).items.length, 1);
-  const row = store.raw(a.id); assert.equal(row.status, 'pending'); assert.equal(row.source_type, 'customer'); assert.equal(row.admin_posted, 0);
+  assert.equal(a.id, b.id); assert.equal(a.status, 'published'); assert.equal(b.status, 'published');
+  assert.equal((await store.list({ admin: true, status: 'all' })).items.length, 1);
+  const row = store.raw(a.id); assert.equal(row.status, 'published'); assert.equal(row.source_type, 'customer'); assert.equal(row.admin_posted, 0);
+  assert.equal(row.source_name, ''); assert.equal(row.permission_confirmed, 0);
   await assert.rejects(store.create({ ...first, comment: '異なる本文' }, publicOptions), code('request_conflict'));
   await store.delete(a.id, { operationId: randomUUID() });
-  assert.equal((await store.create(first, publicOptions)).duplicate, true);
+  assert.deepEqual(await store.create(first, publicOptions), { id: a.id, status: 'received', duplicate: true });
   assert.equal((await store.list({ admin: true, status: 'all' })).items.length, 0);
+});
+
+test('a submission replay matches the original pending fingerprint without approving legacy pending content', async () => {
+  const { store, db } = setup(); const submission = input({ rating: 1, comment: '以前の投稿です。私には味が合いませんでした。' });
+  const visitorHash = createHash('sha256').update(submission.visitorId).digest('hex');
+  // This is the previously deployed request fingerprint, independently built from the old public fields.
+  const legacyHash = createHash('sha256').update(JSON.stringify({ name: submission.name, rating: submission.rating,
+    comment: submission.comment, status: 'pending', sourceType: 'customer', sourceName: '', sourceUrl: '', reviewedAt: '',
+    permissionConfirmed: 0, images: [], visitorId: visitorHash, admin: false })).digest('hex');
+  db.prepare(`INSERT INTO reviews(id,name,rating,comment,status,source_type,created_at,updated_at)
+    VALUES(?,?,?,?,'pending','customer',?,?)`).run(submission.submissionId, submission.name, submission.rating, submission.comment, 1800000000, 1800000000);
+  db.prepare('INSERT INTO review_operations(id,kind,review_id,hash,created_at) VALUES(?,?,?,?,?)')
+    .run(submission.submissionId, 'create', submission.submissionId, legacyHash, 1800000000);
+  assert.deepEqual(await store.create(submission, publicOptions), { id: submission.submissionId, status: 'pending', duplicate: true });
+  assert.deepEqual(await store.create({ ...submission, status: 'published' }, publicOptions), { id: submission.submissionId, status: 'pending', duplicate: true });
+  assert.equal(store.raw(submission.submissionId).status, 'pending'); assert.equal(store.raw(submission.submissionId).version, 1);
+  assert.equal(store.summary().count, 0); assert.equal((await store.list()).items.length, 0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM reviews').get().n, 1);
+  await assert.rejects(store.create({ ...submission, comment: '内容を変更した再送' }, publicOptions), code('request_conflict'));
+  await store.update(submission.submissionId, { status: 'published' });
+  assert.deepEqual(await store.create(submission, publicOptions), { id: submission.submissionId, status: 'published', duplicate: true });
 });
 
 test('one public submission per visitor per rolling day; retries do not consume IP limits', async () => {
@@ -206,7 +239,7 @@ test('failed storage writes roll back review, images, operations and public subm
 test('API enforces access boundary, methods, payload limit, validation and non-cacheable errors', async () => {
   const { store } = setup();
   let response = await reviewApi(req('/reviews', input()), store, publicOptions);
-  assert.equal(response.status, 201); assert.equal((await response.json()).status, 'pending');
+  assert.equal(response.status, 201); assert.equal((await response.json()).status, 'published');
   response = await reviewApi(req('/admin/api/reviews'), store);
   assert.equal(response.status, 404);
   response = await reviewApi(req('/reviews', input(), 'PUT'), store, publicOptions);
@@ -223,7 +256,7 @@ test('API enforces access boundary, methods, payload limit, validation and non-c
 test('admin API previews pending images, paginates and filters counts; public summary spans all published pages', async () => {
   const { store, advance } = setup();
   for (let i = 0; i < 12; i++) { await published(store, { rating: i % 5 + 1 }); advance(1); }
-  const pending = await store.create(input({ images: [png] }), publicOptions);
+  const pending = (await store.create(input({ status: 'pending', images: [png] }), admin)).item;
   const pages = [];
   for (let number = 1; number <= 3; number++) {
     const response = await reviewApi(req(`/reviews?page=${number}`), store); const page = await response.json();
