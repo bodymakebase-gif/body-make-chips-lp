@@ -1,9 +1,11 @@
 import { CheckoutError, validateRequest } from './catalog.mjs';
+import { retrieveCheckout } from './order-pricing.mjs';
 
 export function sessionParameters(row, config) {
   return {
     mode: 'payment',
     line_items: [{ price: row.price_id, quantity: 1 }],
+    ...(row.checkout_version >= 2 ? { allow_promotion_codes: true } : {}),
     client_reference_id: row.request_id,
     metadata: { set_id: row.set_id, bags: String(row.bags) },
     payment_intent_data: { metadata: { set_id: row.set_id, bags: String(row.bags) } },
@@ -17,7 +19,9 @@ export function sessionParameters(row, config) {
     // Omit payment_method_types; eligible methods are managed in the Stripe Dashboard.
     consent_collection: { terms_of_service: 'required' },
     adaptive_pricing: { enabled: false },
-    custom_text: { submit: { message: '税込・送料込み。入金確認後3営業日以内に発送。お客様都合の返品不可。不良品・誤配送は到着後7日以内にご連絡ください。' } },
+    custom_text: { submit: { message: row.checkout_version >= 2 ?
+      '税込・送料込み。ご注文確定後3営業日以内に発送。お客様都合の返品不可。不良品・誤配送は到着後7日以内にご連絡ください。' :
+      '税込・送料込み。入金確認後3営業日以内に発送。お客様都合の返品不可。不良品・誤配送は到着後7日以内にご連絡ください。' } },
     integration_identifier: 'body_make_chips_sopnqvte',
   };
 }
@@ -41,7 +45,7 @@ export class CheckoutService {
     if (['paid', 'pending'].includes(row.state)) return { status: 'complete', sessionId: row.session_id };
     if (['expired', 'failed', 'review'].includes(row.state)) throw new CheckoutError('checkout_unavailable', 409);
     if (row.session_id) {
-      const session = await this.stripe.checkout.sessions.retrieve(row.session_id);
+      const session = await retrieveCheckout(this.stripe, row.session_id);
       this.validateMode(session);
       this.store.applySession(session, this.clock());
       if (session.status === 'complete') return { status: 'complete', sessionId: session.id };
@@ -65,7 +69,7 @@ export class CheckoutService {
     if (!['checkout.session.completed','checkout.session.expired','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'].includes(event.type)) return;
     if (event.livemode !== this.config.livemode) throw new Error('Webhook mode mismatch');
     // Fetch authoritative state so delayed/out-of-order events cannot release a paid order.
-    const session = await this.stripe.checkout.sessions.retrieve(event.data.object.id);
+    const session = await retrieveCheckout(this.stripe, event.data.object.id);
     this.validateMode(session);
     if (event.type === 'checkout.session.async_payment_failed' && session.status === 'complete' && session.payment_status === 'unpaid') {
       this.store.failAsync(session, this.clock(), event.id);
@@ -75,7 +79,7 @@ export class CheckoutService {
     for (const row of this.store.pending()) {
       try {
         if (row.session_id) {
-          const session = await this.stripe.checkout.sessions.retrieve(row.session_id);
+          const session = await retrieveCheckout(this.stripe, row.session_id);
           this.validateMode(session);
           this.store.applySession(session, this.clock());
         } else if (row.expires - this.clock() >= 1850) {
@@ -89,8 +93,10 @@ export class CheckoutService {
             if (session.client_reference_id !== row.request_id) continue;
             found = true;
             this.validateMode(session);
-            this.store.attach(row.request_id, session, this.clock());
-            this.store.applySession(session, this.clock());
+            const complete = await retrieveCheckout(this.stripe, session.id);
+            this.validateMode(complete);
+            this.store.attach(row.request_id, complete, this.clock());
+            this.store.applySession(complete, this.clock());
             break;
           }
           if (!found && this.clock() > row.expires + 300) this.store.failCreation(row.request_id, this.clock());

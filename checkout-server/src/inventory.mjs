@@ -1,4 +1,5 @@
 import { CATALOG, INITIAL_STOCK, CheckoutError, validateRequest } from './catalog.mjs';
+import { checkoutPricing, checkoutComplete } from './order-pricing.mjs';
 
 // This store contains no customer addresses or card data. Stripe remains the order record.
 // SQL operations inside transactionSync finish before any network await.
@@ -21,6 +22,12 @@ export class InventoryStore {
         note TEXT NOT NULL, actor TEXT NOT NULL, created INTEGER NOT NULL,
         before_available INTEGER NOT NULL, after_available INTEGER NOT NULL,
         reversal_of TEXT UNIQUE);`);
+    const columns = new Set(this.sql.exec('PRAGMA table_info(reservations)').toArray().map(row => row.name));
+    for (const [name, type] of Object.entries({ checkout_version: 'INTEGER NOT NULL DEFAULT 1',
+      amount_total: 'INTEGER', amount_discount: 'INTEGER NOT NULL DEFAULT 0', reviewer_code: 'TEXT',
+      questionnaire: 'TEXT', promotion_code_id: 'TEXT' })) {
+      if (!columns.has(name)) this.sql.exec(`ALTER TABLE reservations ADD COLUMN ${name} ${type}`);
+    }
     this.sql.exec('INSERT OR IGNORE INTO inventory(id,environment,total) VALUES(1,?,?)', environment, initialStock);
     if (this.sql.exec('SELECT environment FROM inventory WHERE id=1').one().environment !== environment) {
       throw new Error('Inventory environment mismatch; use separate namespaces for test and live.');
@@ -42,8 +49,8 @@ export class InventoryStore {
       if (this.available() < item.bags) throw new CheckoutError('out_of_stock', 409);
       // 35 minutes gives Stripe's 30-minute minimum headroom on the initial request.
       this.sql.exec(`INSERT INTO reservations
-        (request_id,set_id,bags,amount,price_id,created,expires,state,updated)
-        VALUES(?,?,?,?,?,?,?,'creating',?)`,
+        (request_id,set_id,bags,amount,price_id,created,expires,state,updated,checkout_version)
+        VALUES(?,?,?,?,?,?,?,'creating',?,2)`,
         input.requestId, input.setId, item.bags, item.amount, priceId, now, now + 2100, now);
       return this.get(input.requestId);
     });
@@ -67,13 +74,13 @@ export class InventoryStore {
       if (!row) return;
       if (row.session_id && row.session_id !== session.id) throw new Error('Session mismatch');
       if (row.state === 'review') return 'Order requires manual review';
-      if (session.amount_total !== row.amount || session.currency !== 'jpy' || session.mode !== 'payment' ||
-          session.metadata?.set_id !== row.set_id || session.metadata?.bags !== String(row.bags)) {
+      let pricing;
+      try { pricing = checkoutPricing(session, row); } catch {
         this.sql.exec("UPDATE reservations SET state='review',updated=? WHERE request_id=?", now, row.request_id);
         return 'Order integrity mismatch';
       }
       let state = row.state;
-      if (session.payment_status === 'paid') {
+      if (checkoutComplete(session, pricing)) {
         // Released stock must not be silently reallocated by an unexpected late payment.
         if (['expired', 'failed'].includes(row.state)) {
           this.sql.exec("UPDATE reservations SET state='review',updated=? WHERE request_id=?", now, row.request_id);
@@ -84,6 +91,11 @@ export class InventoryStore {
         if (session.status === 'expired') state = 'expired';
         else if (session.status === 'complete') state = 'pending';
         else if (session.status === 'open') state = 'open';
+      }
+      if (state === 'paid') {
+        this.sql.exec(`UPDATE reservations SET amount_total=?,amount_discount=?,reviewer_code=?,questionnaire=?,promotion_code_id=?
+          WHERE request_id=?`, pricing.amount_total, pricing.amount_discount, pricing.reviewer_code, pricing.questionnaire,
+          pricing.promotion_code_id, row.request_id);
       }
       this.sql.exec('UPDATE reservations SET session_id=?,state=?,updated=? WHERE request_id=?', session.id, state, now, row.request_id);
       if (eventId) this.sql.exec('INSERT INTO events(id,processed) VALUES(?,?)', eventId, now);

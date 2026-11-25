@@ -33,6 +33,7 @@ function requireLogin() {
   if ($('confirm-dialog').open) $('confirm-dialog').close();
   clearOrderView();
   clearReviewView();
+  clearCouponView();
 }
 async function api(path, data) {
   let response;
@@ -49,7 +50,7 @@ async function api(path, data) {
 function renderSummary(data) {
   summary = data;
   for (const key of ['available', 'held', 'paid']) $(key).textContent = format(data[key]);
-  $('calculation').textContent = `開始時 ${format(data.initial)}袋 ＋ 手動の増減 ${data.adjustments >= 0 ? '+' : '−'}${format(Math.abs(data.adjustments))}袋 − 購入手続き中 ${format(data.held)}袋 − 販売済み ${format(data.paid)}袋${data.review ? ` − 要確認 ${format(data.review)}袋` : ''}`;
+  $('calculation').textContent = `開始時 ${format(data.initial)}袋 ＋ 手動の増減 ${data.adjustments >= 0 ? '+' : '−'}${format(Math.abs(data.adjustments))}袋 − 購入手続き中 ${format(data.held)}袋 − 注文確定 ${format(data.paid)}袋${data.review ? ` − 要確認 ${format(data.review)}袋` : ''}`;
   $('updated').textContent = '更新 ' + date(data.updatedAt);
   $('review-warning').hidden = !(data.review || data.available < 0);
   $('review-warning').textContent = `要確認の在庫：${format(data.review)}袋。安全のため在庫変更を停止しています。Stripeの記録との照合が必要です。`;
@@ -117,6 +118,7 @@ async function refresh(withHistory = false) {
     if (pending && !$('confirm-dialog').open) showConfirm();
     if (activeTab === 'orders') await refreshOrders();
     if (activeTab === 'reviews') await refreshReviews().catch(error => message('reviews-message', error.message));
+    if (activeTab === 'coupons') await refreshCoupons().catch(error => message('coupons-message', error.message));
     if (orderPending && !$('order-dialog').open && !$('confirm-dialog').open) openOrder(orderPending.id);
   } catch (error) {
     if (version !== refreshVersion) return;
@@ -131,7 +133,7 @@ $('login-form').addEventListener('submit', async event => {
   finally { $('login-button').disabled = false; }
 });
 $('logout').addEventListener('click', async () => {
-  if (busy || reviewSaving || reviewImageProcessing) return;
+  if (busy || reviewSaving || reviewImageProcessing || couponSaving) return;
   try { await api('logout', {}); requireLogin(); message('login-message', 'ログアウトしました。', 'success'); }
   catch (error) { message('status', error.message); }
 });
@@ -177,14 +179,14 @@ if (document.body.dataset.environment === 'test') {
   $('stock-stripe').href = 'https://dashboard.stripe.com/acct_1ThYmB2KjzkCozaC/test/payments';
 }
 else $('environment').textContent = '本番';
-setInterval(() => { if (loggedIn && !busy && !pending && !reviewSaving && !reviewPending && !document.hidden) refresh(); }, 30000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && loggedIn && !busy && !pending && !reviewSaving && !reviewPending) refresh(); });
+setInterval(() => { if (loggedIn && !busy && !pending && !reviewSaving && !reviewPending && !couponSaving && !couponPending && !document.hidden) refresh(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && loggedIn && !busy && !pending && !reviewSaving && !reviewPending && !couponSaving && !couponPending) refresh(); });
 
 // Fulfillment and stock share authentication, but keep independent, audited records.
 const statusLabels = { unshipped: '未発送', shipped: '発送済み', contacted: '発送済み' };
 const trackingLabel = row => row.tracking ? `追跡番号 ${row.tracking}` : '追跡番号なし';
 const day = seconds => new Date((seconds + 9 * 3600) * 1000).toISOString().slice(0, 10);
-let activeTab = ['#orders', '#reviews'].includes(location.hash) ? location.hash.slice(1) : 'inventory';
+let activeTab = ['#orders', '#reviews', '#coupons'].includes(location.hash) ? location.hash.slice(1) : 'inventory';
 let orderFilter = 'unshipped', ordersNext = null, ordersVersion = 0, detailVersion = 0, activeOrderId = null, orderDetail = null, orderPending = null;
 try { orderPending = JSON.parse(sessionStorage.getItem('bmc-fulfillment-pending') || 'null'); } catch {}
 function rememberOrder() {
@@ -193,23 +195,50 @@ function rememberOrder() {
 function clearOrderView() {
   ordersVersion++; detailVersion++; orderDetail = null; activeOrderId = null;
   $('order-dialog').close(); $('order-content').hidden = true; $('orders-list').replaceChildren();
-  for (const id of ['order-recipient', 'order-contact', 'order-audit', 'order-summary', 'order-id', 'shipment-summary']) $(id).replaceChildren();
+  for (const id of ['order-recipient', 'order-contact', 'order-audit', 'order-summary', 'order-id', 'shipment-summary', 'order-reviewer-note']) $(id).replaceChildren();
+  $('order-reviewer-note').hidden = true;
+  $('shipping-confirm-label').textContent = 'Stripeで返金・キャンセルがないことを確認し、実際に発送しました。';
   $('order-stripe').removeAttribute('href');
 }
 function switchTab(tab) {
-  if (busy || reviewSaving || reviewImageProcessing) return;
+  if (busy || reviewSaving || reviewImageProcessing || couponSaving) return;
   activeTab = tab;
-  for (const name of ['inventory', 'orders', 'reviews']) { $(name + '-panel').hidden = tab !== name; if (name === tab) $(name + '-tab').setAttribute('aria-current', 'page'); else $(name + '-tab').removeAttribute('aria-current'); }
+  for (const name of ['inventory', 'orders', 'reviews', 'coupons']) { $(name + '-panel').hidden = tab !== name; if (name === tab) $(name + '-tab').setAttribute('aria-current', 'page'); else $(name + '-tab').removeAttribute('aria-current'); }
   if (tab === 'orders' && loggedIn) refreshOrders().catch(error => message('orders-message', error.message));
   if (tab === 'reviews' && loggedIn) refreshReviews().catch(error => message('reviews-message', error.message));
+  if (tab === 'coupons' && loggedIn) refreshCoupons().catch(error => message('coupons-message', error.message));
 }
 $('inventory-tab').addEventListener('click', () => { historyReplace('#inventory'); switchTab('inventory'); });
 $('orders-tab').addEventListener('click', () => { historyReplace('#orders'); switchTab('orders'); });
 $('reviews-tab').addEventListener('click', () => { historyReplace('#reviews'); switchTab('reviews'); });
+$('coupons-tab').addEventListener('click', () => { historyReplace('#coupons'); switchTab('coupons'); });
 function historyReplace(hash) { window.history.replaceState(null, '', hash); }
-window.addEventListener('hashchange', () => switchTab(['#orders', '#reviews'].includes(location.hash) ? location.hash.slice(1) : 'inventory'));
+window.addEventListener('hashchange', () => switchTab(['#orders', '#reviews', '#coupons'].includes(location.hash) ? location.hash.slice(1) : 'inventory'));
 function element(tag, text, className) { const el = document.createElement(tag); el.textContent = text; if (className) el.className = className; return el; }
 function badge(status) { return element('span', statusLabels[status], 'order-status ' + status); }
+function orderCharge(row) { return row.amount_total ?? row.amount; }
+function orderReviewerCode(row) { return typeof row.reviewer_code === 'string' ? row.reviewer_code.trim() : ''; }
+function orderQuestionnaire(row) { return typeof row.questionnaire === 'string' ? row.questionnaire.trim() : ''; }
+function orderPurposeLabel(row) { return orderReviewerCode(row) ? (orderCharge(row) === 0 ? 'レビュワー用・無料' : 'レビュワー用') : ''; }
+function orderPriceText(row) {
+  const charged = orderCharge(row), gross = row.amount;
+  const discount = Math.max(0, Number(row.amount_discount) || 0, Number(gross) - Number(charged));
+  return discount > 0 || charged !== gross ? `通常価格 ¥${format(gross)} ／ 割引 −¥${format(discount)}` : '';
+}
+function renderOrderPackingNote(row) {
+  const code = orderReviewerCode(row), questionnaire = orderQuestionnaire(row), note = $('order-reviewer-note');
+  note.replaceChildren(); note.hidden = !code && !questionnaire;
+  if (code) {
+    note.append(element('strong', orderPurposeLabel(row)));
+    const pricing = orderPriceText(row); if (pricing) note.append(element('p', pricing));
+    note.append(element('p', `クーポン：${code}`));
+  }
+  if (questionnaire) note.append(element('p', `「${questionnaire}」を同梱`, 'reviewer-order-note__survey'));
+  $('shipping-confirm-label').textContent = questionnaire
+    ? `Stripeでキャンセルされていない注文であることを確認し、「${questionnaire}」を同梱して実際に発送しました。`
+    : code ? 'Stripeでキャンセルされていない注文であることを確認し、実際に発送しました。'
+      : 'Stripeで返金・キャンセルがないことを確認し、実際に発送しました。';
+}
 async function refreshOrders(append = false) {
   const version = ++ordersVersion;
   const data = await api(`orders?status=${orderFilter}${append && ordersNext ? '&after=' + ordersNext : ''}`);
@@ -221,7 +250,11 @@ async function refreshOrders(append = false) {
     const article = document.createElement('article'); article.className = 'order-row';
     const content = document.createElement('div'), top = document.createElement('div'); top.className = 'order-row-top';
     top.append(badge(row.status), element('span', date(row.created), 'small'));
-    content.append(top, element('h3', `${row.name}　¥${format(row.amount)}`), element('p', `注文番号 ${row.id.slice(0, 8)} · ${row.bags}袋`, 'small'));
+    const purpose = orderPurposeLabel(row); if (purpose) top.append(element('span', purpose, 'order-purpose-badge'));
+    content.append(top, element('h3', `${row.name}　¥${format(orderCharge(row))}`), element('p', `注文番号 ${row.id.slice(0, 8)} · ${row.bags}袋`, 'small'));
+    const pricing = orderPriceText(row); if (pricing) content.append(element('p', pricing, 'order-price-note'));
+    if (orderReviewerCode(row)) content.append(element('p', `クーポン：${orderReviewerCode(row)}`, 'small'));
+    const questionnaire = orderQuestionnaire(row); if (questionnaire) content.append(element('p', `「${questionnaire}」を同梱`, 'order-survey-note'));
     if (row.status !== 'unshipped') content.append(element('p', `${row.shipped_date} 発送 · ${row.carrier} · ${trackingLabel(row)}`, 'order-tracking'));
     const button = element('button', row.status === 'unshipped' ? '確認・発送する →' : '詳細を見る →', 'secondary');
     button.addEventListener('click', () => openOrder(orderPending?.id || row.id));
@@ -257,7 +290,9 @@ async function openOrder(id) {
 function renderOrder() {
   const { order: row, recipient, history: events } = orderDetail;
   $('order-title').textContent = row.name; $('order-content').hidden = false;
-  $('order-summary').replaceChildren(badge(row.status), element('strong', `¥${format(row.amount)} · ${row.bags}袋`), element('span', date(row.created), 'small'));
+  $('order-summary').replaceChildren(badge(row.status), element('strong', `¥${format(orderCharge(row))} · ${row.bags}袋`), element('span', date(row.created), 'small'));
+  const purpose = orderPurposeLabel(row); if (purpose) $('order-summary').append(element('span', purpose, 'order-purpose-badge'));
+  renderOrderPackingNote(row);
   $('order-id').textContent = '注文番号 ' + row.id;
   const address = recipient.address;
   $('order-recipient').textContent = address ? [recipient.name, '〒' + (address.postal_code || ''), [address.state, address.city, address.line1].filter(Boolean).join(''), address.line2].filter(Boolean).join('\n') : '配送先を取得できません。Stripeで必ず確認してください。';
@@ -585,5 +620,160 @@ $('review-delete-confirm').addEventListener('click', () => {
   const payload = { operationId: crypto.randomUUID(), confirmed: true }; if (Number.isInteger(reviewDeleteTarget.version)) payload.version = reviewDeleteTarget.version;
   submitAdminReview({ kind: 'delete', id: reviewDeleteTarget.id, path: 'reviews/' + encodeURIComponent(reviewDeleteTarget.id) + '/delete', payload });
 });
+// Reviewer coupons have their own retry record; they never change stock here.
+Object.assign(messages, {
+  reviewer_coupon_invalid: 'コード・アンケート名・利用上限を確認してください。',
+  invalid_coupon_code: 'Reviewerに続けて、半角英数字2〜50文字を入力してください。',
+  invalid_questionnaire: '同梱するアンケート名を80文字以内で入力してください。改行や制御文字は使えません。',
+  invalid_max_redemptions: '利用上限は1〜10,000の整数で入力してください。',
+  reviewer_coupon_conflict: 'このコードまたは登録番号はすでに使われています。停止済みのコードも再利用できません。別のコードを入力してください。',
+  reviewer_coupon_not_found: 'クーポンが見つかりません。一覧を更新してください。',
+  reviewer_coupon_not_ready: 'クーポンの設定を確認できません。時間をおいてお試しください。',
+});
+const couponRows = new Map();
+let couponsVersion = 0, couponsNext = null, couponSaving = false, couponPending = null, couponUncertain = false, couponStopTarget = null;
+try {
+  const saved = JSON.parse(sessionStorage.getItem('bmc-reviewer-coupon-pending') || 'null');
+  const operation = saved?.payload?.operationId;
+  const validOperation = typeof operation === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(operation);
+  const validCreate = saved?.kind === 'create' && saved.path === 'reviewer-coupons';
+  const validStop = saved?.kind === 'stop' && typeof saved.id === 'string' && /^promo_[a-z0-9]{1,200}$/i.test(saved.id) && saved.path === 'reviewer-coupons/' + encodeURIComponent(saved.id) && saved.payload.active === false;
+  if (validOperation && (validCreate || validStop)) { couponPending = saved; couponUncertain = true; }
+} catch {}
+function rememberCoupon() {
+  try { if (couponPending) sessionStorage.setItem('bmc-reviewer-coupon-pending', JSON.stringify(couponPending)); else sessionStorage.removeItem('bmc-reviewer-coupon-pending'); } catch {}
+}
+function clearCouponView() {
+  couponsVersion++; couponsNext = null; couponRows.clear(); $('coupons-list').replaceChildren();
+  $('coupon-form').reset(); couponStopTarget = null;
+  if ($('coupon-stop-dialog').open) $('coupon-stop-dialog').close();
+}
+function setCouponDisabled() {
+  const blocked = couponSaving || Boolean(couponPending);
+  $('coupon-fields').disabled = blocked;
+  $('coupon-create-button').textContent = couponSaving && couponPending?.kind === 'create' ? '発行しています…' : 'クーポンを発行する';
+  $('coupons-refresh').disabled = blocked; $('coupons-more').disabled = blocked;
+  $('coupon-retry-box').hidden = !(couponUncertain && couponPending?.kind === 'create'); $('coupon-retry').disabled = couponSaving;
+  const uncertainStop = couponUncertain && couponPending?.kind === 'stop';
+  $('coupon-stop-confirm').disabled = couponSaving;
+  $('coupon-stop-confirm').textContent = couponSaving ? '確認しています…' : uncertainStop ? '停止結果を確認する' : '停止する';
+  $('coupon-stop-close').disabled = couponSaving || uncertainStop; $('coupon-stop-cancel').disabled = couponSaving || uncertainStop;
+  for (const button of document.querySelectorAll('[data-coupon-action]')) button.disabled = blocked;
+}
+function showCouponPending() {
+  if (!couponPending || !loggedIn || activeTab !== 'coupons') return;
+  if (couponPending.kind === 'create') {
+    $('coupon-code').value = couponPending.payload.code || '';
+    $('coupon-questionnaire').value = couponPending.payload.questionnaire || '';
+    $('coupon-max-redemptions').value = couponPending.payload.maxRedemptions || '';
+    if (couponUncertain) message('coupons-message', '前回の発行結果を確認できていません。「発行結果を確認する」を押してください。');
+  } else if (couponUncertain) {
+    couponStopTarget = { id: couponPending.id, code: couponPending.code, questionnaire: couponPending.questionnaire };
+    $('coupon-stop-summary').textContent = [couponPending.code, couponPending.questionnaire ? `同梱：${couponPending.questionnaire}` : ''].filter(Boolean).join('\n');
+    message('coupon-stop-message', '前回の停止結果を確認できていません。同じ登録番号で確認します。');
+    if (!$('coupon-stop-dialog').open) $('coupon-stop-dialog').showModal();
+  }
+  setCouponDisabled();
+}
+function couponAvailability(coupon) {
+  if (Number(coupon.maxRedemptions) > 0 && Number(coupon.timesRedeemed) >= Number(coupon.maxRedemptions)) return { label: '上限に到達', className: 'exhausted' };
+  const expires = coupon.expiresAt;
+  const expiry = typeof expires === 'number' ? expires * (expires < 1e12 ? 1000 : 1) : expires ? Date.parse(expires) : NaN;
+  if (Number.isFinite(expiry) && expiry <= Date.now()) return { label: '期限切れ', className: 'exhausted' };
+  if (!coupon.active) return { label: '停止中', className: 'stopped' };
+  return { label: '利用可', className: '' };
+}
+function renderCouponCard(coupon) {
+  const card = element('article', '', 'coupon-card'), top = element('div', '', 'coupon-card__top');
+  const state = couponAvailability(coupon);
+  top.append(element('code', coupon.code, 'coupon-card__code'), element('span', state.label, 'coupon-state ' + state.className));
+  const used = Math.max(0, Number(coupon.timesRedeemed) || 0), maximum = Math.max(0, Number(coupon.maxRedemptions) || 0);
+  card.append(top, element('p', `「${coupon.questionnaire}」を同梱`, 'coupon-card__questionnaire'), element('p', `利用 ${format(used)} / ${format(maximum)}回`, 'coupon-card__usage'));
+  const footer = element('div', '', 'coupon-card__footer'), actions = element('div', '', 'coupon-card__actions');
+  footer.append(element('p', 'お試し3袋・無料', 'small'));
+  const copy = element('button', 'コードをコピー', 'secondary'); copy.type = 'button'; copy.dataset.couponAction = coupon.id;
+  copy.addEventListener('click', async () => {
+    if (couponSaving || couponPending) return;
+    try { await navigator.clipboard.writeText(coupon.code); message('coupons-message', `${coupon.code}をコピーしました。`, 'success'); }
+    catch { message('coupons-message', 'コピーできませんでした。表示されているコードを選択してコピーしてください。'); }
+  });
+  actions.append(copy);
+  if (coupon.active) {
+    const stop = element('button', '停止する', 'secondary'); stop.type = 'button'; stop.dataset.couponAction = coupon.id;
+    stop.addEventListener('click', () => openCouponStop(couponRows.get(coupon.id) || coupon)); actions.append(stop);
+  }
+  footer.append(actions); card.append(footer); return card;
+}
+async function refreshCoupons(append = false) {
+  showCouponPending();
+  const version = ++couponsVersion;
+  const result = await api('reviewer-coupons' + (append && couponsNext ? '?after=' + encodeURIComponent(couponsNext) : ''));
+  if (version !== couponsVersion || !loggedIn) return;
+  if (!Array.isArray(result.items) || (result.next != null && typeof result.next !== 'string')) throw new Error('クーポン一覧を確認できませんでした。もう一度更新してください。');
+  const list = $('coupons-list'); if (!append) { couponRows.clear(); list.replaceChildren(); }
+  if (!result.items.length && !append) list.append(element('p', result.next ? 'このページには表示するクーポンがありません。「次のクーポンを表示」で続きを確認できます。' : '発行済みのクーポンはまだありません。', 'empty'));
+  for (const coupon of result.items) {
+    if (!coupon || typeof coupon.id !== 'string' || typeof coupon.code !== 'string' || couponRows.has(coupon.id)) continue;
+    if (!couponRows.size) list.replaceChildren();
+    couponRows.set(coupon.id, coupon); list.append(renderCouponCard(coupon));
+  }
+  if (!couponRows.size && !result.next) list.replaceChildren(element('p', '発行済みのクーポンはまだありません。', 'empty'));
+  couponsNext = result.next || null; $('coupons-more').hidden = !couponsNext; setCouponDisabled(); showCouponPending();
+}
+function openCouponStop(coupon) {
+  if (busy || couponSaving || couponPending || !loggedIn || !coupon.active) return;
+  couponStopTarget = coupon;
+  $('coupon-stop-summary').textContent = [coupon.code, `同梱：${coupon.questionnaire}`, `利用 ${format(coupon.timesRedeemed)} / ${format(coupon.maxRedemptions)}回`].join('\n');
+  message('coupon-stop-message', ''); setCouponDisabled(); $('coupon-stop-dialog').showModal();
+}
+function closeCouponStop() {
+  if (couponSaving || (couponUncertain && couponPending?.kind === 'stop')) return;
+  $('coupon-stop-dialog').close(); couponStopTarget = null;
+}
+async function saveCoupon(operation) {
+  if (busy || couponSaving || !loggedIn) return;
+  couponPending = operation; rememberCoupon(); couponSaving = true; couponsVersion++; setCouponDisabled();
+  message('coupons-message', ''); if (operation.kind === 'stop') message('coupon-stop-message', '');
+  let completed = false;
+  try {
+    const result = await api(operation.path, operation.payload);
+    if (operation.kind === 'create' && (!result.coupon || typeof result.coupon.id !== 'string' || typeof result.coupon.code !== 'string' || result.coupon.code.toLowerCase() !== operation.payload.code.toLowerCase())) throw Object.assign(new Error('発行結果を読み取れませんでした。同じ登録番号で確認してください。'), { uncertain: true });
+    couponPending = null; couponUncertain = false; rememberCoupon(); completed = true;
+    message('coupons-message', operation.kind === 'create' ? `${result.coupon.code}を発行しました。同梱：${result.coupon.questionnaire}。` : `${operation.code}を停止しました。`, 'success');
+    if (operation.kind === 'create') $('coupon-form').reset();
+    else { $('coupon-stop-dialog').close(); couponStopTarget = null; }
+  } catch (error) {
+    if (error.code === 'authentication_required') { couponUncertain = true; rememberCoupon(); return; }
+    couponUncertain = Boolean(error.uncertain);
+    if (!couponUncertain) { couponPending = null; rememberCoupon(); }
+    const suffix = couponUncertain ? '\n同じ登録番号で結果を確認するので、二重には処理しません。' : '';
+    message(operation.kind === 'stop' ? 'coupon-stop-message' : 'coupons-message', error.message + suffix);
+  } finally { couponSaving = false; setCouponDisabled(); }
+  if (completed && loggedIn) {
+    try { await refreshCoupons(); }
+    catch { message('coupons-message', `${operation.kind === 'create' ? operation.payload.code + 'は発行済み' : operation.code + 'は停止済み'}です。一覧を更新できなかったため「一覧を更新」を押してください。`, 'success'); }
+  }
+}
+$('coupon-form').addEventListener('submit', event => {
+  event.preventDefault(); if (busy || couponSaving || couponPending || !$('coupon-form').reportValidity()) return;
+  const code = $('coupon-code').value.trim(), questionnaire = $('coupon-questionnaire').value.trim(), maximum = Number($('coupon-max-redemptions').value);
+  if (!/^Reviewer[a-z0-9]{2,50}$/i.test(code)) { message('coupons-message', messages.invalid_coupon_code); return; }
+  if (!questionnaire || questionnaire.length > 80 || /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/.test(questionnaire)) { message('coupons-message', messages.invalid_questionnaire); return; }
+  if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 10000) { message('coupons-message', messages.invalid_max_redemptions); return; }
+  saveCoupon({ kind: 'create', path: 'reviewer-coupons', payload: { operationId: crypto.randomUUID(), code, questionnaire, maxRedemptions: maximum } });
+});
+$('coupon-retry').addEventListener('click', () => { if (couponPending?.kind === 'create') saveCoupon(couponPending); });
+$('coupons-refresh').addEventListener('click', async () => { if (couponSaving || couponPending) return; $('coupons-refresh').disabled = true; message('coupons-message', ''); try { await refreshCoupons(); } catch (error) { message('coupons-message', error.message); } finally { setCouponDisabled(); } });
+$('coupons-more').addEventListener('click', async () => { if (couponSaving || couponPending || !couponsNext) return; $('coupons-more').disabled = true; try { await refreshCoupons(true); } catch (error) { message('coupons-message', error.message); } finally { setCouponDisabled(); } });
+$('coupon-stop-close').addEventListener('click', closeCouponStop); $('coupon-stop-cancel').addEventListener('click', closeCouponStop);
+$('coupon-stop-dialog').addEventListener('cancel', event => { event.preventDefault(); closeCouponStop(); });
+$('coupon-stop-confirm').addEventListener('click', () => {
+  if (couponSaving || !couponStopTarget) return;
+  if (couponPending?.kind === 'stop') { saveCoupon(couponPending); return; }
+  const coupon = couponStopTarget;
+  saveCoupon({ kind: 'stop', id: coupon.id, code: coupon.code, questionnaire: coupon.questionnaire,
+    path: 'reviewer-coupons/' + encodeURIComponent(coupon.id), payload: { operationId: crypto.randomUUID(), active: false } });
+});
+setCouponDisabled();
 switchTab(activeTab);
 refresh(true);

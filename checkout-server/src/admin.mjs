@@ -30,7 +30,7 @@ export function validateAdminRequest(request, mode) {
   if (!['GET', 'POST'].includes(request.method)) throw new CheckoutError('method_not_allowed', 405);
 }
 
-export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null, fulfillment = null, reviews = null) {
+export async function adminApi(request, store, auth, keyHash, readJson, now = Math.floor(Date.now() / 1000), analytics = null, fulfillment = null, reviews = null, reviewerCoupons = null) {
   const url = new URL(request.url);
   const token = cookieToken(request);
   if (url.pathname === '/admin/api/login' && request.method === 'POST') {
@@ -43,6 +43,16 @@ export async function adminApi(request, store, auth, keyHash, readJson, now = Ma
     return adminJson({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
   }
   const actor = await auth.authenticate(token, keyHash, now);
+  if (url.pathname === '/admin/api/reviewer-coupons') {
+    if (!reviewerCoupons) throw new CheckoutError('reviewer_coupon_not_ready', 503);
+    if (request.method === 'GET') return adminJson(await reviewerCoupons.list(url.searchParams.get('after') || undefined));
+    if (request.method === 'POST') return adminJson(await reviewerCoupons.create(await readJson(request)));
+  }
+  const couponId = url.pathname.match(/^\/admin\/api\/reviewer-coupons\/(promo_[A-Za-z0-9]+)$/)?.[1];
+  if (couponId && request.method === 'POST') {
+    if (!reviewerCoupons) throw new CheckoutError('reviewer_coupon_not_ready', 503);
+    return adminJson(await reviewerCoupons.stop(couponId, await readJson(request)));
+  }
   if (isAdminReviewPath(url.pathname)) {
     if (!reviews) throw new CheckoutError('reviews_unavailable', 503);
     const response = await reviews(request, actor.actor);

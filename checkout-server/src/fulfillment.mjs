@@ -1,4 +1,5 @@
 import { CATALOG, CheckoutError } from './catalog.mjs';
+import { checkoutPricing, checkoutComplete, retrieveCheckout } from './order-pricing.mjs';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const states = ['unshipped', 'shipped'];
@@ -10,6 +11,7 @@ const clean = (value, max, required = false) => {
 // Retain the old ledger values and audit trail while showing one completed shipping state.
 const statusSql = "CASE WHEN f.state = 'contacted' THEN 'shipped' ELSE COALESCE(f.state, 'unshipped') END";
 const select = `SELECT r.rowid AS cursor, r.request_id AS id, r.session_id, r.set_id, r.bags, r.amount, r.created,
+  r.price_id, r.checkout_version, r.amount_total, r.amount_discount, r.reviewer_code, r.questionnaire, r.promotion_code_id,
   ${statusSql} AS status, COALESCE(f.version, 0) AS version,
   f.shipped_date, f.carrier, f.tracking, f.contacted_at, f.updated
   FROM reservations r LEFT JOIN fulfillment_orders f ON f.request_id = r.request_id`;
@@ -120,10 +122,12 @@ export class FulfillmentStore {
 export class FulfillmentService {
   constructor(store, stripe, livemode) { this.store = store; this.stripe = stripe; this.livemode = livemode; }
   async session(row) {
-    const session = await this.stripe.checkout.sessions.retrieve(row.session_id);
-    if (session.id !== row.session_id || session.client_reference_id !== row.id || session.livemode !== this.livemode ||
-        session.payment_status !== 'paid' || session.mode !== 'payment' || session.currency !== 'jpy' || session.amount_total !== row.amount ||
-        session.metadata?.set_id !== row.set_id || session.metadata?.bags !== String(row.bags)) throw new CheckoutError('order_needs_review', 409);
+    const session = await retrieveCheckout(this.stripe, row.session_id);
+    let complete = false;
+    try { complete = checkoutComplete(session, checkoutPricing(session, row)); } catch { /* Fail closed on changed pricing. */ }
+    if (session.id !== row.session_id || session.client_reference_id !== row.id || session.livemode !== this.livemode || !complete) {
+      throw new CheckoutError('order_needs_review', 409);
+    }
     return session;
   }
   async detail(id) {
@@ -137,7 +141,8 @@ export class FulfillmentService {
     return { order: this.store.get(id), history: this.store.history(id), recipient: {
       name: shipping?.name || '', address: shipping?.address || null,
       email: customer.email || '', phone: customer.phone || '',
-    }, stripeUrl: `https://dashboard.stripe.com/${account}/payments${/^pi_[A-Za-z0-9]+$/.test(payment || '') ? '/' + payment : ''}` };
+    }, stripeUrl: /^pi_[A-Za-z0-9]+$/.test(payment || '') ? `https://dashboard.stripe.com/${account}/payments/${payment}` :
+      `https://dashboard.stripe.com/${account}/no-cost-orders` };
   }
   async update(input, actor, now) {
     const prior = this.store.repeat(this.store.normalize(input)); if (prior) return prior;

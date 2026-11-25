@@ -9,6 +9,8 @@ import { PurchaseAnalytics, analyticsDefaultAllowed } from './analytics.mjs';
 import { FulfillmentStore, FulfillmentService } from './fulfillment.mjs';
 import { ReviewsStore, reviewApi } from './reviews.mjs';
 import { publicReviewResponse, relayAdminReview } from './reviews-gateway.mjs';
+import { checkoutPricing, checkoutComplete, retrieveCheckout } from './order-pricing.mjs';
+import { ReviewerCouponService } from './reviewer-coupons.mjs';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 const configFor = env => ({
@@ -146,26 +148,29 @@ export class Inventory extends DurableObject {
     this.fulfillment = new FulfillmentService(new FulfillmentStore(ctx.storage), this.stripe, env.STRIPE_MODE === 'live');
     this.analytics = new PurchaseAnalytics(ctx.storage, env);
     this.service = new CheckoutService(this.store, this.stripe, configFor(env), undefined, this.analytics);
+    this.reviewerCoupons = new ReviewerCouponService(this.stripe, configFor(env));
   }
   async fetch(request) {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith('/admin/api/')) {
         return await adminApi(request, this.store, this.adminAuth, this.env.INVENTORY_ADMIN_KEY_HASH, readJson, undefined, this.analytics, this.fulfillment,
-          (req, actor) => relayAdminReview(req, this.env, actor));
+          (req, actor) => relayAdminReview(req, this.env, actor), this.reviewerCoupons);
       }
       if (url.pathname === '/availability') return json({ available: this.store.status(), remainingBags: Math.max(0, this.store.available()), livemode: this.env.STRIPE_MODE === 'live' });
       if (url.pathname === '/order-status') {
-        const session = await this.stripe.checkout.sessions.retrieve(url.searchParams.get('session_id'));
+        const session = await retrieveCheckout(this.stripe, url.searchParams.get('session_id'));
         this.service.validateMode(session);
         const row = this.store.get(session.client_reference_id);
         if (!row || (row.session_id && row.session_id !== session.id)) return json({ error: 'not_found' }, 404);
-        if (session.amount_total !== row.amount || session.currency !== 'jpy' || session.mode !== 'payment' ||
-            session.metadata?.set_id !== row.set_id || session.metadata?.bags !== String(row.bags) || row.state === 'review') {
+        let pricing;
+        try { pricing = checkoutPricing(session, row); } catch { return json({ error: 'order_needs_review' }, 409); }
+        if (row.state === 'review') {
           return json({ error: 'order_needs_review' }, 409);
         }
-        return json({ paid: session.payment_status === 'paid', recorded: row.state === 'paid', state: row.state,
-          status: session.status, bags: row.bags, amount: row.amount, setId: row.set_id, requestId: row.request_id });
+        return json({ paid: checkoutComplete(session, pricing), recorded: row.state === 'paid', state: row.state,
+          status: session.status, bags: row.bags, amount: pricing.amount_total, free: pricing.amount_total === 0,
+          setId: row.set_id, requestId: row.request_id });
       }
       if (url.pathname === '/checkout') {
         // Schedule before the API call so a lost response still gets reconciled.

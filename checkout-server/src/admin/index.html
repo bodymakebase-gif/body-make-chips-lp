@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫・注文・レビュー管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>在庫・注文・レビュー・クーポン管理｜BODY-MAKE CHIPS</title><link rel="stylesheet" href="/admin/admin.css"><script src="/admin/admin.js" defer></script></head>
 <body data-environment="__ENVIRONMENT__">
 <header class="topbar"><a class="brand" href="/admin/">BODY-MAKE CHIPS<span>STOCK ROOM</span></a><span id="environment" class="badge">在庫管理</span><button id="logout" class="quiet" hidden>ログアウト</button></header>
 <main>
@@ -9,17 +9,17 @@
   <p id="login-message" class="message" role="status"></p><p class="small">初回の管理キーは、お渡しした「在庫管理_ログイン情報.txt」にあります。ログインは8時間有効です。</p>
 </section>
 <div id="dashboard" hidden>
-  <nav class="admin-tabs" aria-label="管理メニュー"><button id="inventory-tab" aria-current="page" aria-controls="inventory-panel">在庫</button><button id="orders-tab" aria-controls="orders-panel">注文・発送</button><button id="reviews-tab" aria-controls="reviews-panel">レビュー</button></nav>
+  <nav class="admin-tabs" aria-label="管理メニュー"><button id="inventory-tab" aria-current="page" aria-controls="inventory-panel">在庫</button><button id="orders-tab" aria-controls="orders-panel">注文・発送</button><button id="reviews-tab" aria-controls="reviews-panel">レビュー</button><button id="coupons-tab" aria-controls="coupons-panel">クーポン</button></nav>
   <div id="inventory-panel">
   <div class="page-heading"><div><p class="eyebrow">YOUR INVENTORY</p><h1>在庫管理</h1><p>取り分けたら、ここに記録。</p></div><button id="refresh" class="secondary">最新の在庫に更新 <span aria-hidden="true">↻</span></button></div>
   <p id="status" class="message" role="status" aria-live="polite"></p>
   <section class="stock-grid" aria-label="現在の在庫">
     <article class="stock available"><div class="stock-label">販売可能</div><p class="number"><strong id="available">—</strong><span>袋</span></p><p>いまLPで販売できる数量</p><div class="sync"><span aria-hidden="true">●</span> LPと自動連動</div></article>
     <article class="stock"><div class="stock-label">購入手続き中</div><p class="number"><strong id="held">—</strong><span>袋</span></p><p>決済のため一時的に確保。<br>期限切れを確認すると戻ります。</p></article>
-    <article class="stock"><div class="stock-label">販売済み</div><p class="number"><strong id="paid">—</strong><span>袋</span></p><p>決済成功を確認した累計。<br>発送時の減算は不要です。</p></article>
+    <article class="stock"><div class="stock-label">注文確定</div><p class="number"><strong id="paid">—</strong><span>袋</span></p><p>無料提供を含む確定注文の累計。<br>発送時の減算は不要です。</p></article>
   </section>
   <div class="stock-context"><p id="calculation">在庫を読み込んでいます。</p><p id="updated">—</p></div>
-  <p class="small physical-note">「販売可能」は手元の実物の総数とは異なります。販売済みには未発送の商品も含まれます。</p>
+  <p class="small physical-note">「販売可能」は手元の実物の総数とは異なります。注文確定には未発送の商品と無料提供分も含まれます。</p>
   <p id="review-warning" class="warning" hidden></p>
   <div class="workspace">
     <section class="panel adjust-panel" aria-labelledby="adjust-title"><p class="eyebrow">STOCK IN / OUT</p><h2 id="adjust-title">在庫を変更する</h2><p class="muted">用途を選び、袋数を入力してください。</p>
@@ -34,12 +34,12 @@
     <aside class="side-notes"><section class="panel"><p class="eyebrow">A QUICK GUIDE</p><h2>試供品を取りたいとき</h2><ol><li>「試供品として取り分ける」を選ぶ</li><li>取り分ける袋数を入力</li><li>内容を確認して登録</li></ol><p>登録した分だけ販売可能数が減り、LPにも反映されます。購入や決済の操作は不要です。</p><p class="small">入力を間違えたら、変更履歴から取り消せます。記録は残ります。</p></section>
     <a id="stock-stripe" class="external" href="https://dashboard.stripe.com/acct_1ThYlsRzqHvlt8DA/payments" target="_blank" rel="noopener noreferrer">注文・配送先をStripeで確認 <span aria-hidden="true">↗</span></a><a class="external" href="https://body-make-chips.jp/#lineup" target="_blank" rel="noopener noreferrer">公開LPを確認 <span aria-hidden="true">↗</span></a></aside>
   </div>
-  <section class="panel history-panel" aria-labelledby="history-title"><div class="section-heading"><div><p class="eyebrow">STOCK HISTORY</p><h2 id="history-title">変更履歴</h2></div><span class="small">日時は日本時間</span></div><p class="muted">手動で変更した記録です。購入による減算は、上の販売済み数とStripeで確認できます。</p><div id="history" class="history-list"></div><button id="load-more" class="secondary" hidden>以前の記録を表示</button></section>
+  <section class="panel history-panel" aria-labelledby="history-title"><div class="section-heading"><div><p class="eyebrow">STOCK HISTORY</p><h2 id="history-title">変更履歴</h2></div><span class="small">日時は日本時間</span></div><p class="muted">手動で変更した記録です。購入による減算は、上の注文確定数とStripeで確認できます。</p><div id="history" class="history-list"></div><button id="load-more" class="secondary" hidden>以前の記録を表示</button></section>
   </div>
   <section id="orders-panel" aria-labelledby="orders-title" hidden>
     <div class="page-heading"><div><p class="eyebrow">ORDERS &amp; SHIPPING</p><h1 id="orders-title">注文・発送</h1><p>送るもの、送ったもの。ここでひと目に。</p></div><button id="orders-refresh" class="secondary">注文を更新 ↻</button></div>
-    <div class="order-flow"><span><b>01</b> 決済成功で未発送に</span><span><b>02</b> 荷物を渡したら発送済みで完了</span></div>
-    <p class="muted">LPで決済が完了した注文を表示します。発送の登録で在庫は減りません。</p>
+    <div class="order-flow"><span><b>01</b> 注文確定で未発送に</span><span><b>02</b> 荷物を渡したら発送済みで完了</span></div>
+    <p class="muted">LPで確定した注文を、無料提供分も含めて表示します。発送の登録で在庫は減りません。</p>
     <div class="order-filters" aria-label="発送状況で絞り込む">
       <button data-order-filter="unshipped" aria-pressed="true"><span>未発送</span><strong id="count-unshipped">—</strong><small>これから発送</small></button>
       <button data-order-filter="shipped" aria-pressed="false"><span>発送済み</span><strong id="count-shipped">—</strong><small>発送完了</small></button>
@@ -71,16 +71,31 @@
     <div class="review-management-toolbar"><div class="review-status-filters" aria-label="レビューの掲載状態"><button class="text-button" type="button" data-review-filter="pending" aria-pressed="true">承認待ち <span id="review-count-pending">—</span></button><button class="text-button" type="button" data-review-filter="published" aria-pressed="false">公開中 <span id="review-count-published">—</span></button><button class="text-button" type="button" data-review-filter="hidden" aria-pressed="false">非公開 <span id="review-count-hidden">—</span></button><button class="text-button" type="button" data-review-filter="all" aria-pressed="false">すべて</button></div><button id="reviews-refresh" class="secondary" type="button">一覧を更新 ↻</button></div>
     <p id="review-public-summary" class="small"></p><div id="reviews-list" class="review-admin-list" aria-live="polite"></div><button id="reviews-more" class="secondary" type="button" hidden>次のレビューを表示</button>
   </section>
+  <section id="coupons-panel" aria-labelledby="coupons-title" hidden>
+    <div class="page-heading"><div><p class="eyebrow">REVIEWER COUPONS</p><h1 id="coupons-title">クーポン管理</h1><p>レビュワー用の3袋無料クーポンを発行。</p></div><button id="coupons-refresh" class="secondary" type="button">一覧を更新 ↻</button></div>
+    <p id="coupons-message" class="message" role="status" aria-live="polite"></p>
+    <section class="panel coupon-create" aria-labelledby="coupon-create-title"><p class="eyebrow">CREATE A CODE</p><h2 id="coupon-create-title">クーポンを発行する</h2><p class="muted">お試し3袋を無料にするクーポンです。同梱するアンケート名と利用上限を設定します。</p>
+      <form id="coupon-form"><fieldset id="coupon-fields"><legend class="sr-only">レビュワー用クーポンの設定</legend>
+        <div class="coupon-form-grid"><div><label for="coupon-code">クーポンコード</label><input id="coupon-code" name="code" type="text" required minlength="10" maxlength="58" pattern="[Rr][Ee][Vv][Ii][Ee][Ww][Ee][Rr][A-Za-z0-9]{2,50}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：Reviewer00"><p class="small">Reviewerに続けて、半角英数字2〜50文字を入力します。</p></div><div><label for="coupon-questionnaire">同梱するアンケート名</label><input id="coupon-questionnaire" name="questionnaire" type="text" required maxlength="80" autocomplete="off" placeholder="例：アンケート00"><p class="small">80文字まで。注文一覧と発送画面に表示します。</p></div></div>
+        <label for="coupon-max-redemptions">利用できる回数の上限</label><div class="quantity"><input id="coupon-max-redemptions" name="maxRedemptions" type="number" inputmode="numeric" required min="1" max="10000" step="1" placeholder="例：20"><span>回</span></div><p class="small">1〜10,000回で指定してください。このコード全体で使える回数です。個別配布には、相手ごとに異なるコードを上限1回で発行できます。</p>
+        <button id="coupon-create-button" class="primary" type="submit">クーポンを発行する</button>
+      </fieldset></form>
+      <div id="coupon-retry-box" class="warning" hidden><p>通信が途切れ、発行結果を確認できません。同じ登録番号で確認するため、二重に発行しません。</p><button id="coupon-retry" class="secondary" type="button">発行結果を確認する</button></div>
+    </section>
+    <div class="section-heading coupon-list-heading"><div><p class="eyebrow">ISSUED CODES</p><h2>発行済みクーポン</h2></div><span class="small">不要になったコードは停止できます。</span></div>
+    <div id="coupons-list" class="coupon-list" aria-live="polite"></div><button id="coupons-more" class="secondary" type="button" hidden>次のクーポンを表示</button>
+  </section>
   <footer>BODY-MAKE CHIPS / 管理者専用<br><span>表示中の一覧は30秒ごとに更新します。</span></footer>
 </div>
 </main>
-<dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><button id="dialog-close" class="close" aria-label="閉じる">×</button></form><p class="eyebrow">CHECK BEFORE SAVING</p><h2 id="confirm-title">この内容で登録しますか？</h2><p id="confirm-kind" class="confirm-kind"></p><p id="confirm-quantity" class="confirm-quantity"></p><p id="confirm-note" class="muted"></p><p id="confirm-impact" class="change-preview"></p><p class="small">登録時の最新在庫に反映します。購入手続き中・販売済みの数量は変更しません。</p><p id="confirm-error" class="message" role="alert"></p><div class="dialog-actions"><button id="cancel-change" class="secondary">戻る</button><button id="commit-change" class="primary">登録する</button></div></dialog>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><button id="dialog-close" class="close" aria-label="閉じる">×</button></form><p class="eyebrow">CHECK BEFORE SAVING</p><h2 id="confirm-title">この内容で登録しますか？</h2><p id="confirm-kind" class="confirm-kind"></p><p id="confirm-quantity" class="confirm-quantity"></p><p id="confirm-note" class="muted"></p><p id="confirm-impact" class="change-preview"></p><p class="small">登録時の最新在庫に反映します。購入手続き中・注文確定の数量は変更しません。</p><p id="confirm-error" class="message" role="alert"></p><div class="dialog-actions"><button id="cancel-change" class="secondary">戻る</button><button id="commit-change" class="primary">登録する</button></div></dialog>
 <noscript>この管理画面にはJavaScriptが必要です。ブラウザの設定を確認してください。</noscript>
 <dialog id="order-dialog" class="order-dialog" aria-labelledby="order-title">
   <button id="order-close" class="close" aria-label="注文を閉じる">×</button><p class="eyebrow">ORDER DETAILS</p><h2 id="order-title">注文の詳細</h2>
   <p id="order-error" class="message" role="alert"></p><button id="order-reload" class="secondary" hidden>最新の内容を読み直す</button>
   <div id="order-content" hidden>
     <div id="order-summary" class="order-summary"></div><p id="order-id" class="order-id"></p>
+    <div id="order-reviewer-note" class="reviewer-order-note" hidden></div>
     <div class="recipient-card"><h3>お届け先</h3><p id="order-recipient"></p><p id="order-contact"></p><a id="order-stripe" class="external" target="_blank" rel="noopener noreferrer">Stripeで決済・返金状況を確認 ↗</a></div>
     <div id="shipment-summary" class="change-preview" hidden></div>
     <form id="shipment-form"><fieldset id="shipment-fields"><legend>荷物を配送会社に渡したら</legend>
@@ -88,7 +103,7 @@
       <div class="shipping-grid"><div><label for="shipped-date">発送日</label><input id="shipped-date" type="date" required></div><div><label for="shipping-carrier">配送会社</label><select id="shipping-carrier" required><option value="">選択してください</option><option>ヤマト運輸</option><option>日本郵便</option><option>佐川急便</option><option>その他</option></select></div></div>
       <label for="shipping-tracking-mode">追跡番号</label><select id="shipping-tracking-mode"><option value="provided">あり（番号を入力）</option><option value="none">なし</option></select>
       <div id="shipping-tracking-field"><label for="shipping-tracking">追跡番号を入力</label><input id="shipping-tracking" required maxlength="80" pattern="[A-Za-z0-9-]+" placeholder="ハイフンあり・なし、どちらでも可" autocomplete="off"></div>
-      <label class="check-label"><input id="shipping-confirm" type="checkbox" required><span>Stripeで返金・キャンセルがないことを確認し、実際に発送しました。</span></label>
+      <label class="check-label"><input id="shipping-confirm" type="checkbox" required><span id="shipping-confirm-label">Stripeで返金・キャンセルがないことを確認し、実際に発送しました。</span></label>
       <button type="submit" class="primary">発送済みにする <span>→</span></button>
     </fieldset></form>
     <details id="order-correction" class="order-correction"><summary>登録を間違えた場合</summary><p class="small">配送情報の訂正は「未発送」に戻して登録し直してください。</p><form id="order-undo-form"><label for="order-undo-reason">戻す理由</label><input id="order-undo-reason" required maxlength="200" placeholder="例：発送日の入力間違い"><button class="secondary" type="submit" id="order-undo">未発送に戻す</button></form></details>
@@ -97,4 +112,5 @@
   <div id="order-retry-box" class="warning" hidden><p>通信が途切れ、登録結果を確認できません。同じ番号で確認するため、二重には登録されません。</p><button id="order-retry" class="secondary">登録結果を確認</button></div>
 </dialog>
 <dialog id="review-delete-dialog" aria-labelledby="review-delete-title"><button id="review-delete-close" class="close" type="button" aria-label="削除の確認を閉じる">×</button><p class="eyebrow">DELETE REVIEW</p><h2 id="review-delete-title">このレビューを削除しますか？</h2><p id="review-delete-summary" class="muted"></p><p class="small">本文・画像・参考になった件数を削除します。掲載を止めるだけの場合は「非公開」を選んでください。</p><p id="review-delete-message" class="message" role="alert"></p><div class="dialog-actions"><button id="review-delete-cancel" class="secondary" type="button">戻る</button><button id="review-delete-confirm" class="primary review-danger" type="button">削除する</button></div></dialog>
+<dialog id="coupon-stop-dialog" aria-labelledby="coupon-stop-title"><button id="coupon-stop-close" class="close" type="button" aria-label="クーポン停止の確認を閉じる">×</button><p class="eyebrow">STOP A CODE</p><h2 id="coupon-stop-title">このクーポンを停止しますか？</h2><p id="coupon-stop-summary" class="coupon-stop-summary"></p><p class="small">停止すると、新しいお申し込みには使えなくなります。すでに確定した注文は変わりません。</p><p id="coupon-stop-message" class="message" role="alert"></p><div class="dialog-actions"><button id="coupon-stop-cancel" class="secondary" type="button">戻る</button><button id="coupon-stop-confirm" class="primary" type="button">停止する</button></div></dialog>
 </body></html>

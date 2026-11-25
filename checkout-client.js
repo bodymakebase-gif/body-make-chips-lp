@@ -282,7 +282,8 @@ if (order) {
       const result = await api(`/order-status?session_id=${encodeURIComponent(sessionId)}`);
       if (result.paid && result.recorded) {
         heading.textContent = 'ご注文ありがとうございます。';
-        order.textContent = `${result.bags}袋・${result.amount.toLocaleString('ja-JP')}円（税込・送料込み）のお支払いを確認しました。入金確認後3営業日以内に発送します。`;
+        order.textContent = result.free ? `${result.bags}袋・0円（税込・送料込み）のご注文を受け付けました。お支払いは不要です。受付後3営業日以内に発送します。` :
+          `${result.bags}袋・${result.amount.toLocaleString('ja-JP')}円（税込・送料込み）のお支払いを確認しました。入金確認後3営業日以内に発送します。`;
         forget(result.setId, result.requestId);
         checkButton.hidden = true;
       } else if (result.state === 'failed' || result.status === 'expired') {

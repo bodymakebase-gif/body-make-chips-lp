@@ -14,17 +14,20 @@ export function analyticsContext(input) {
 export function purchasePayload(row, context, now, debug = false) {
   const item = CATALOG[row.set_id];
   if (!item || row.state !== 'paid' || row.amount !== item.amount || row.bags !== item.bags) return null;
+  const total = row.amount_total ?? row.amount;
+  // Product samples must not inflate the site's purchase rate or reported revenue.
+  if (row.reviewer_code || total === 0 || !Number.isSafeInteger(total) || total < 0 || total > row.amount) return null;
   return {
     client_id: context.clientId,
     timestamp_micros: now * 1000000,
     consent: { ad_user_data: 'DENIED', ad_personalization: 'DENIED' },
     events: [{ name: 'purchase', params: {
       transaction_id: `bmc_${row.request_id}`,
-      currency: 'JPY', value: row.amount,
+      currency: 'JPY', value: total,
       session_id: context.sessionId, engagement_time_msec: 1,
       ...(debug ? { debug_mode: true } : {}),
       items: [{ item_id: row.set_id, item_name: `BODY-MAKE CHIPS ${item.name}`,
-        item_brand: 'BODY-MAKE CHIPS', item_variant: `${item.bags}袋`, price: row.amount, quantity: 1 }],
+        item_brand: 'BODY-MAKE CHIPS', item_variant: `${item.bags}袋`, price: total, quantity: 1 }],
     } }],
   };
 }
